@@ -18,5 +18,8 @@ Programme python d'analyse des images d'une des caméra du SVR-Lazartigue, perme
 
 ## Utilisation
 
-Placer la vidéo avec le nom ccc.mp4 dans le dossier video.
+Placer la vidéo avec le nom ccc.mkv dans le dossier video.
+
 Lancer le programme.
+
+Appuyer sur `q` pour quitter le programme.

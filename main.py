@@ -3,154 +3,133 @@ import cv2  # OpenCV library
 import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
 
-from analyzers.analyseDerive import computeDerive
-from analyzers.analyseSafran import computeSafran
-from analyzers.analyseMousse import computeMousse
-
-cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc2.mp4")
-
-valuesDerive = []
-numFrameDerive = []
-
-valuesSafran = []
-numFrameSafran = []
-
-valuesMousseBrasArriere = []
-numFrameMousseBrasArriere = []
-
-valuesDataReliability = []
-numFrame = []
-dataReliability = 0
-
-nbFrame = 0
-movingAverageSize = 50
-
-#Enregistrement
-'''
-frame_width = int(cap.get(3))
-frame_height = int(cap.get(4))
-
-size = (frame_width, frame_height)
-videoObject = cv2.VideoWriter('detection_hauteur2.avi', cv2.VideoWriter_fourcc(*'MJPG'), 25, size)
-'''
-
-while True:
-
-    # Récupère une image de la vidéo
-    ret, frame = cap.read()
-    if frame is None:
-        print("-----  Fin de la vidéo  -----")
-        break
-
-    ###### Détection Embrun #####
-    crop_image_embrun_right = frame[1:1079, 1450:1919]
-    crop_image_embrun = frame
-
-    embrun = False
-    embrunRight = False
-
-    sum = 0
-    sumPixels = 0
-    sumRight = 0
-    sumPixelsRight = 0
-
-    hist = cv2.calcHist([crop_image_embrun],[0],None,[256],[0,256])
-    histRight = cv2.calcHist([crop_image_embrun_right],[0],None,[256],[0,256])
-
-    for i in range(1, len(hist)):
-        sum = sum + int(hist[i][0]) * i
-        sumPixels += int(hist[i][0])
-        sumRight = sumRight + int(histRight[i][0]) * i
-        sumPixelsRight += int(histRight[i][0])
-
-    if int(sumRight/sumPixelsRight) > 100 :
-        embrunRight = True
-
-    if int(sum/sumPixels) > 125 :
-        embrun = True
-
-    ###### Analyse de l'image #####
-
-    resultDerive = computeDerive(frame)
-    resultSafran = computeSafran(frame)
-    resultMousse = computeMousse(frame)
-    
-    if resultDerive is not None and not embrun:
-
-        # Enregistre la hauteur
-        valuesDerive.append(resultDerive["height"])
-        numFrameDerive.append(nbFrame)
-
-        # Dessin des mesures
-        cv2.drawContours(frame, [resultDerive["contour"]], 0, (255, 0, 255), 2, offset=(1400, 249))
-        cv2.line(frame,resultDerive["pos1"], resultDerive["pos2"],(0,255,0), 2) # Tracé de la hauteur de l'écume juste derière le foil
-    else:
-        dataReliability += 1
+from analyzers.analyseDerive import AnalyseDerive
+from analyzers.analyseSafran import AnalyseSafran
+from analyzers.analyseMousse import AnalyseMousse
+from analyzers.dataRecovery import DataRecovery
 
 
-    if resultSafran is not None and not embrunRight:
+class Main():
+    """
+    Class principale éxécuté au début du programme
 
-        valuesSafran.append(resultSafran["height"])
-        numFrameSafran.append(nbFrame)
+    Attributs:
+        cap (VideoCapture): Objet permettant de charger une vidéo, puis de la lire avec la méthode read().
+        record (boolean): Indique si on veut enregistrer la vidéo.
+        videoObject (VideoObject): Objet qui contient l'enregistrement dans le cas ou record est True.
+        analyseDerive (AnalyseDerive): Objet sert à mesurer la taille de la dérive qui sort de l'eau.
+        analyseSafran (AnalyseSafran): Objet sert à mesurer la taille du safran qui sort de l'eau.
+        analyseMousse (AnalyseMousse): Objet sert à mesurer la taille de la mousse en dessous du bras arrière du bateau.
+        dataRecovery (DataRecovery): Objet permettant de récupérer les données.
+    """
 
-        cv2.drawContours(frame, [resultSafran["contour"]], 0, (255, 0, 255), 2, offset=(344, 430))
-        cv2.line(frame, resultSafran["pos1"], resultSafran["pos2"], (0,255,0), 2) # Tracé de la hauteur de l'écume juste derière le foil
-    else:
-        dataReliability += 1
+    def __init__(self):
+        """
+        Constructeur de la class Main()
+        """
+
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc.mkv")
+        self.record = False
+        self.videoObject = None
+        self.nbFrame = 0
+
+        self.analyseDerive = AnalyseDerive(1400, 250, 1514, 417)
+        self.analyseSafran = AnalyseSafran(344, 430, 481, 579)
+        self.analyseMousse = AnalyseMousse(550, 385, 650, 650)
+        self.dataRecovery = DataRecovery()
+
+        # Enregistrement
+        if self.record:
+            frame_width = int(self.cap.get(3))
+            frame_height = int(self.cap.get(4))
+
+            size = (frame_width, frame_height)
+            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record.avi", cv2.VideoWriter_fourcc(*'mp4v'), 25, size)
+
+    def execute(self):
+        """
+        Fonction d'éxécution du programme principal de la lecture de la vidéo à l'affichage des données.
+        """
+
+        while True:
+
+            ###### Lecture de la vidéo #####
+
+            # Récupère une image de la vidéo
+            ret, frame = self.cap.read()
+            if frame is None:
+                print("-----  Fin de la vidéo  -----")
+                break
+
+            ###### Récupération des données #####
+
+            resultDerive = self.analyseDerive.compute(frame)
+            resultSafran = self.analyseSafran.compute(frame)
+            resultMousse = self.analyseMousse.compute(frame)
+
+            self.dataRecovery.addData("derive", self.nbFrame, resultDerive)
+            self.dataRecovery.addData("safran", self.nbFrame, resultSafran)
+            self.dataRecovery.addData("mousse", self.nbFrame, resultMousse)
+
+            ###### Dessin des données #####
+
+            for aMeasureKey, aMeasureValue in self.dataRecovery.data.items():
+                if aMeasureValue["quality"][-1] != None:  # Pas de dessin des mesures vides
+
+                    color = (0, 255, 0)
+                    if aMeasureValue["quality"][-1] == 1:
+                        color = (0, 0, 255)
+
+                    cv2.drawContours(frame, [aMeasureValue["contour"][-1]], 0, (255, 0, 255), 2)
+                    cv2.line(frame, aMeasureValue["firstPosMeasure"][-1], aMeasureValue["secondPosMeasure"][-1], color, 2)
+
+            cv2.putText(frame, str(self.nbFrame), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2, cv2.LINE_AA)
+
+            ###### Fin de l'analyse de l'image #####
+
+            # Enregistrement
+            if self.record:
+                self.videoObject.write(frame)
+
+            # Afficher l'image avec les dessins
+            cv2.imshow('frame', frame)
+
+            # waitKey -> attente en milliseconde, et regarde si l'utilisateur appuie sur 'q' pour quitter
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            self.nbFrame += 1
+
+        ###### Fin de l'analyse de la vidéo #####
+
+        self.cap.release()
+
+        # Enregistrement
+        if self.record:
+            self.videoObject.release()
+
+        cv2.destroyAllWindows()
+
+        ###### Traitement des données #####
+
+        self.dataRecovery.convertToDataframe()
+
+        for aMeasureKey in self.dataRecovery.data:
+            # On garde uniquement les données de bonne qualité (0)
+            self.dataRecovery.data[aMeasureKey] = self.dataRecovery.data[aMeasureKey].loc[self.dataRecovery.data[aMeasureKey]["quality"] >= self.analyseDerive.qualityLimit]
+
+            # Moyenne glissante
+            self.dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(self.dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=25)
+
+        ###### Affichage des résultats #####
+
+        # Courbes
+        for aMeasureKey in self.dataRecovery.data:
+            plt.plot(self.dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), self.dataRecovery.data[aMeasureKey]["height"], label=aMeasureKey)
+        plt.title('Hauteur en pixels en fonction du temps')
+        plt.legend()
+        plt.show()
 
 
-    if resultMousse is not None and not embrunRight:
-
-        # Enregistre la hauteur
-        valuesMousseBrasArriere.append(resultMousse["height"])
-        numFrameMousseBrasArriere.append(nbFrame)
-
-        # Dessin des mesures
-        cv2.drawContours(frame, [resultMousse["contour"]], 0, (255, 0, 255), 2, offset=(550, 385))
-        cv2.line(frame, resultMousse["pos1"], resultMousse["pos2"], (0,255,0), 3) # Tracé de la hauteur de la mousse
-    else:
-        dataReliability += 1
-
-
-    ###### Analyse de l'image #####
-
-    valuesDataReliability.append(dataReliability)
-    dataReliability = 0
-    numFrame.append(nbFrame)
-    nbFrame += 1
-
-    #Enregistrement
-    #videoObject.write(frame)
-
-    # Afficher l'image avec les dessins
-    cv2.imshow('frame', frame)
-
-
-    ###### Fin de la vidéo #####
-
-    # Attend 1 millisecondes et regarde si l'utilisateur appuie sur 'q' pour quitter
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-
-#Enregistrement
-#videoObject.release()
-
-cv2.destroyAllWindows()
-
-
-###### Affichage des résultats #####
-
-# Courbe
-valuesFoamMovingAverage = uniform_filter1d(valuesDerive, size=movingAverageSize)
-valuesMousseBrasArriereMovingAverage = uniform_filter1d(valuesMousseBrasArriere, size=movingAverageSize)
-valuesSafranMovingAverage = uniform_filter1d(valuesSafran, size=movingAverageSize)
-
-plt.plot(numFrameDerive, valuesFoamMovingAverage, label = "Dérive")
-plt.plot(numFrameMousseBrasArriere, valuesMousseBrasArriereMovingAverage, label = "Mousse bras arrière")
-plt.plot(numFrameSafran, valuesSafranMovingAverage, label = "Safran")
-plt.plot(numFrame, valuesDataReliability, label = "fiabilité")
-plt.title('Hauteur en pixels en fonction du temps')
-plt.legend()
-plt.show()
+if __name__ == "__main__":
+    Main().execute()
