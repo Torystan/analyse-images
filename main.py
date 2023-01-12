@@ -27,8 +27,8 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc2.mp4")
-        self.record = True
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc3.mp4")
+        self.record = False
         self.videoObject = None
         self.nbFrame = 1
 
@@ -45,7 +45,7 @@ class Main():
             frame_height = int(self.cap.get(4))
 
             size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record2.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
+            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record31.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
 
     def execute(self):
         """

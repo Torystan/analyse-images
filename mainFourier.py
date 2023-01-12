@@ -35,9 +35,9 @@ class Main():
         self.nbFrame = 1
 
         self.analyses = {}
-        self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
+        #self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
         self.analyses["safran"] = AnalyseSafran(344, 430, 481, 579, 67, 7)
-        self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
+        #self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
 
         self.dataRecovery = DataRecovery()
 
@@ -140,7 +140,7 @@ class Main():
 
         plt.figure()
 
-        rate = 1/25
+        rate = 1/30
 
         # Calcul FFT
         X = fft(self.dataRecovery.data["safran"]["height"])  # Transformée de fourier
@@ -161,7 +161,7 @@ class Main():
         plt.title("Transformée de Fourier")
         plt.figure()
 
-        f, t, Sxx = signal.spectrogram(self.dataRecovery.data["safran"]["height"], rate)
+        f, t, Sxx = signal.spectrogram(self.dataRecovery.data["safran"]["height"], 30)
         plt.pcolormesh(t, f, Sxx, shading='gouraud')
         plt.ylabel('Fréquence (Hz)')
         plt.xlabel('Temps (s)')

@@ -21,6 +21,9 @@ class AnalyseSafran(AnalyseContour):
         self.yRefPoint = yRefPoint
 
     def compute(self, frame):
+        """
+        Méthode qui mesure la taille du safran qui sort de l'eau.
+        """
 
         cropFrame = frame[self.y1:self.y2, self.x1:self.x2]
 
@@ -32,8 +35,8 @@ class AnalyseSafran(AnalyseContour):
         
 
         # dessins de toutes les bordures
-        lower = int(max(0 ,1.5*qualityIndex))
-        upper = int(min(255,4*qualityIndex))
+        lower = int(max(0, 1.5*qualityIndex))
+        upper = int(min(255, 4*qualityIndex))
         edged = cv2.Canny(gray_img_safran, lower, upper)
 
         # Détection des contours
