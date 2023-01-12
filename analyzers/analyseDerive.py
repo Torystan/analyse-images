@@ -28,6 +28,10 @@ class AnalyseDerive(AnalyseContour):
         # La variable de hiérarchie contient des informations sur la relation entre chaque contour. (si un contour est dans un contour)
         contours_list_ecume, hierarchy = cv2.findContours(binary_img_ecume, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        #décalage de la zone d'analyse pour détecter l'embrun en amont
+        cropFrameEmbrun = frame[self.y1:self.y2, int(self.x1 + (self.x2 - self.x1)/2):int(self.x2 + (self.x2 - self.x1)/2)]
+        qualityIndex = self.embrunDetection.detection(cropFrameEmbrun)
+
         if contours_list_ecume:
 
             # Récupère le contour le plus grand
@@ -55,10 +59,7 @@ class AnalyseDerive(AnalyseContour):
                     # Décalage des coordonnées du contour pour correspondre sur l'image original (frame)
                     cEcume = cEcume + (self.x1, self.y1)
 
-                    #décalage de la zone d'analyse pour détecter l'embrun en amont
-                    cropFrameEmbrun = frame[self.y1:self.y2, int(self.x1 + (self.x2 - self.x1)/2):int(self.x2 + (self.x2 - self.x1)/2)]
-                    qualityIndex = self.embrunDetection.detection(cropFrameEmbrun)
 
                     return Contour(y1 - y2, cEcume, (x1, y2), (x2, y1), qualityIndex)
 
-        return None
+        return Contour(None, None, None, None, qualityIndex)

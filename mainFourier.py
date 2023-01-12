@@ -2,6 +2,8 @@ import os
 import cv2  # OpenCV library
 import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
+import scipy.signal as signal
+import numpy as np
 from numpy.fft import fft, fftfreq
 
 from analyzers.analyseDerive import AnalyseDerive
@@ -28,14 +30,14 @@ class Main():
         """
 
         self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc2.mp4")
-        self.record = True
+        self.record = False
         self.videoObject = None
         self.nbFrame = 1
 
         self.analyses = {}
-        #self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
+        self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
         self.analyses["safran"] = AnalyseSafran(344, 430, 481, 579, 67, 7)
-        #self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
+        self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
 
         self.dataRecovery = DataRecovery()
 
@@ -45,7 +47,7 @@ class Main():
             frame_height = int(self.cap.get(4))
 
             size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record2.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
+            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
 
     def execute(self):
         """
@@ -136,7 +138,34 @@ class Main():
         for aMeasureKey in self.dataRecovery.data:
             axs[0].plot(self.dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), self.dataRecovery.data[aMeasureKey]["height"], label=aMeasureKey)
 
-        plt.legend()
+        plt.figure()
+
+        rate = 1/25
+
+        # Calcul FFT
+        X = fft(self.dataRecovery.data["safran"]["height"])  # Transformée de fourier
+        freq = fftfreq(self.dataRecovery.data["safran"]["height"].size, d=rate)  # Fréquences de la transformée de Fourier
+
+        # Calcul du nombre d'échantillon
+        N = self.dataRecovery.data["safran"]["height"].size
+
+        # On prend la valeur absolue de l'amplitude uniquement pour les fréquences positives et normalisation
+        X_abs = np.abs(X[:N//2])*2.0/N
+        # On garde uniquement les fréquences positives
+        freq_pos = freq[:N//2]
+
+        plt.plot(freq_pos, X_abs, label="Amplitude absolue")
+        plt.grid()
+        plt.xlabel(r"Fréquence (Hz)")
+        plt.ylabel(r"Amplitude $|X(f)|$")
+        plt.title("Transformée de Fourier")
+        plt.figure()
+
+        f, t, Sxx = signal.spectrogram(self.dataRecovery.data["safran"]["height"], rate)
+        plt.pcolormesh(t, f, Sxx, shading='gouraud')
+        plt.ylabel('Fréquence (Hz)')
+        plt.xlabel('Temps (s)')
+        plt.title('Spectrogramme')
         plt.show()
 
 

@@ -1,7 +1,9 @@
 import os
 import cv2  # OpenCV library
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.ndimage import uniform_filter1d
+from scipy.signal import butter, lfilter, freqz
 from numpy.fft import fft, fftfreq
 
 from analyzers.analyseDerive import AnalyseDerive
@@ -28,7 +30,7 @@ class Main():
         """
 
         self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc2.mp4")
-        self.record = True
+        self.record = False
         self.videoObject = None
         self.nbFrame = 1
 
@@ -45,7 +47,18 @@ class Main():
             frame_height = int(self.cap.get(4))
 
             size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record2.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
+            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
+
+    def butter_lowpass(self, cutoff, fs, order=5):
+        nyq = 0.5 * fs
+        normal_cutoff = cutoff / nyq
+        b, a = butter(order, normal_cutoff, btype='low', analog=False)
+        return b, a
+
+    def butter_lowpass_filter(self, data, cutoff, fs, order=5):
+        b, a = self.butter_lowpass(cutoff, fs, order=order)
+        y = lfilter(b, a, data)
+        return y
 
     def execute(self):
         """
@@ -128,7 +141,9 @@ class Main():
             self.dataRecovery.data[aMeasureKey] = self.dataRecovery.data[aMeasureKey].loc[self.dataRecovery.data[aMeasureKey]["quality"] > self.analyses[aMeasureKey].qualityLimit]
 
             # Moyenne glissante
-            self.dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(self.dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
+            #self.dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(self.dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
+
+        moyenneGlissante = uniform_filter1d(self.dataRecovery.data["safran"]["height"].values.tolist(), size=7)
 
         ###### Affichage des résultats ######
 
@@ -136,7 +151,30 @@ class Main():
         for aMeasureKey in self.dataRecovery.data:
             axs[0].plot(self.dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), self.dataRecovery.data[aMeasureKey]["height"], label=aMeasureKey)
 
+        axs[0].plot(self.dataRecovery.data["safran"]["numFrame"].values.tolist(), moyenneGlissante, label="safranMoy")
+
         plt.legend()
+        plt.figure()
+
+        # Setting standard filter requirements.
+        order = 2
+        fs = 30.0
+        cutoff = 0.3
+
+        # Creating the data for filteration
+        t = self.dataRecovery.data["safran"]["numFrame"].values.tolist()
+
+        data = self.dataRecovery.data["safran"]["height"]
+
+        # Filtering and plotting
+        y = self.butter_lowpass_filter(data, cutoff, fs, order)
+
+        plt.plot(t, data, 'b-', label='data')
+        plt.plot(t, y, 'g-', linewidth=2, label='filtered data')
+        plt.xlabel('Time [sec]')
+        plt.grid()
+        plt.legend()
+
         plt.show()
 
 

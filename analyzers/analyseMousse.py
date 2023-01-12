@@ -28,6 +28,10 @@ class AnalyseMousse(AnalyseContour):
         # La variable de hiérarchie contient des informations sur la relation entre chaque contour. (si un contour est dans un contour)
         contours_list_MousseBrasArriere, hierarchy = cv2.findContours(binary_img_MousseBrasArriere, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+        #décalage de la zone d'analyse pour détecter l'embrun en amont
+        cropFrameEmbrun = frame[self.y1:self.y2, int(self.x1 + (self.x2 - self.x1)/2):int(self.x2 + (self.x2 - self.x1)/2)]
+        qualityIndex = self.embrunDetection.detection(cropFrameEmbrun)
+
         if contours_list_MousseBrasArriere:
 
             # Récupère le contour le plus grand
@@ -48,22 +52,15 @@ class AnalyseMousse(AnalyseContour):
                 x2 = (cMousseBrasArriere[rightPoints[0][len(rightPoints[0])-1]][0])[0]
                 y2 = (cMousseBrasArriere[rightPoints[0][len(rightPoints[0])-1]][0])[1]
 
-                # TODO Si y1 trop grand -> caméra occulté par l'embrun
-                if(True):
+                # Si les deux coordonnées ne sont pas dans le bon ordre
+                if y2 > y1:
+                    temp = y2
+                    y2 = y1
+                    y1 = temp
 
-                    # Si les deux coordonnées ne sont pas dans le bon ordre
-                    if y2 > y1:
-                        temp = y2
-                        y2 = y1
-                        y1 = temp
+                # Décalage des coordonnées du contour pour correspondre sur l'image original (frame)
+                cMousseBrasArriere = cMousseBrasArriere + (self.x1, self.y1)
 
-                    # Décalage des coordonnées du contour pour correspondre sur l'image original (frame)
-                    cMousseBrasArriere = cMousseBrasArriere + (self.x1, self.y1)
+                return Contour(y1 - y2, cMousseBrasArriere, (x2 + self.x1, y2 + self.y1), (x1 + self.x1, y1 + self.y1), qualityIndex)
 
-                    #décalage de la zone d'analyse pour détecter l'embrun en amont
-                    cropFrameEmbrun = frame[self.y1:self.y2, int(self.x1 + (self.x2 - self.x1)/2):int(self.x2 + (self.x2 - self.x1)/2)]
-                    qualityIndex = self.embrunDetection.detection(cropFrameEmbrun)
-
-                    return Contour(y1 - y2, cMousseBrasArriere, (x2 + self.x1, y2 + self.y1), (x1 + self.x1, y1 + self.y1), qualityIndex)
-
-        return None
+        return Contour(None, None, None, None, qualityIndex)

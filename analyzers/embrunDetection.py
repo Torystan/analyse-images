@@ -10,7 +10,7 @@ class EmbrunDetection():
     def detection(self, frame):
         """
         Fonction qui renvoie l'écart type de l'histogramme des pixels,
-        plus l'écart type est bas, plus il y a des l'embrun.
+        plus l'écart type est bas, plus il y a de l'embrun.
   
         Parameters:
             frame (OutputArray): Image à analyser.

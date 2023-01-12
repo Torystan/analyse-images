@@ -31,18 +31,11 @@ class DataRecovery():
 
         self.data[key]["numFrame"].append(numFrame)
 
-        if contour is not None:
-            self.data[key]["height"].append(contour.height)
-            self.data[key]["contour"].append(contour.contour)
-            self.data[key]["firstPosMeasure"].append(contour.firstPosMeasure)
-            self.data[key]["secondPosMeasure"].append(contour.secondPosMeasure)
-            self.data[key]["quality"].append(contour.qualityIndex)
-        else:
-            self.data[key]["height"].append(None)
-            self.data[key]["contour"].append(None)
-            self.data[key]["firstPosMeasure"].append(None)
-            self.data[key]["secondPosMeasure"].append(None)
-            self.data[key]["quality"].append(None)
+        self.data[key]["height"].append(contour.height)
+        self.data[key]["contour"].append(contour.contour)
+        self.data[key]["firstPosMeasure"].append(contour.firstPosMeasure)
+        self.data[key]["secondPosMeasure"].append(contour.secondPosMeasure)
+        self.data[key]["quality"].append(contour.qualityIndex)
 
     def convertToDataframe(self):
         """

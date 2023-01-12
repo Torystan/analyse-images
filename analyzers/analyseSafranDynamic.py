@@ -24,21 +24,23 @@ class AnalyseSafran(AnalyseContour):
 
         cropFrame = frame[self.y1:self.y2, self.x1:self.x2]
 
-        qualityIndex = self.embrunDetection.detection(cropFrame)
-
         # Conversion en noir et blanc et floutage
         gray_img_safran = cv2.cvtColor(cropFrame, cv2.COLOR_BGR2GRAY)
         gray_img_safran = cv2.GaussianBlur(gray_img_safran, (3, 7), 0)
-        
 
         # dessins de toutes les bordures
-        lower = int(max(0 ,1.5*qualityIndex))
-        upper = int(min(255,4*qualityIndex))
+        med_val = np.median(gray_img_safran) 
+        lower = int(max(0 ,0.7*med_val))
+        upper = int(min(255,1.3*med_val))
         edged = cv2.Canny(gray_img_safran, lower, upper)
+        print(lower, upper)
+        #edged = cv2.Canny(gray_img_safran, 75, 200)
 
         # Détection des contours
         # La variable de hiérarchie contient des informations sur la relation entre chaque contour. (si un contour est dans un contour)
         contours_list_safran, hierarchy = cv2.findContours(edged, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        qualityIndex = self.embrunDetection.detection(cropFrame)
 
         if contours_list_safran:
             contourSafran = None
