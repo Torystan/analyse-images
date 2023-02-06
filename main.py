@@ -2,7 +2,6 @@ import os
 import cv2  # OpenCV library
 import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
-from numpy.fft import fft, fftfreq
 
 from analyzers.analyseDerive import AnalyseDerive
 from analyzers.analyseSafran import AnalyseSafran
@@ -27,15 +26,15 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc3.mp4")
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc2.mp4")
         self.record = False
         self.videoObject = None
         self.nbFrame = 1
 
         self.analyses = {}
-        #self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
+        self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
         self.analyses["safran"] = AnalyseSafran(344, 430, 481, 579, 67, 7)
-        #self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
+        self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
 
         self.dataRecovery = DataRecovery()
 
@@ -45,7 +44,7 @@ class Main():
             frame_height = int(self.cap.get(4))
 
             size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record31.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
+            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
 
     def execute(self):
         """
@@ -78,8 +77,7 @@ class Main():
                     if aMeasureValue["quality"][-1] < self.analyses[aMeasureKey].qualityLimit:
                         color = (0, 0, 255)
 
-
-                    cv2.drawContours(frame, [aMeasureValue["contour"][-1]], 0, (255, 0, 255), 2)
+                    cv2.drawContours(frame, [aMeasureValue["contour"][-1]], 0, (255, 0, 255), 1)
                     cv2.line(frame, aMeasureValue["firstPosMeasure"][-1], aMeasureValue["secondPosMeasure"][-1], color, 2)
 
             cv2.putText(frame, str(self.nbFrame), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2, cv2.LINE_AA)

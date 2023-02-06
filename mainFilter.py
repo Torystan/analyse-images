@@ -29,7 +29,7 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc2.mp4")
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc3.mp4")
         self.record = False
         self.videoObject = None
         self.nbFrame = 1
@@ -170,7 +170,7 @@ class Main():
         # Setting standard filter requirements.
         order = 3
         fs = 30.0
-        cutoff = 0.3
+        cutoff = 0.35
 
         # Creating the data for filteration
         t = self.dataRecovery.data["safran"]["numFrame"].values.tolist()
@@ -190,7 +190,7 @@ class Main():
         # Setting standard filter requirements.
         order = 3
         fs = 30.0
-        cutoff = 0.3
+        cutoff = 0.35
 
         # Creating the data for filteration
         t = self.dataRecovery.data["safran"]["numFrame"].values.tolist()
@@ -210,7 +210,7 @@ class Main():
         # Setting standard filter requirements.
         order = 3
         fs = 30.0
-        cutoff = 0.3
+        cutoff = 0.35
 
         # Creating the data for filteration
         t = self.dataRecovery.data["safran"]["numFrame"].values.tolist()
