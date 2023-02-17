@@ -37,8 +37,8 @@ class AnalyseMousse(AnalyseContour):
             # Trouver le contour le plus proche du coin en haut à droite (pour éviter les contours parasites)
             cMousseBrasArriere = None
             for c in contours_list_MousseBrasArriere:
-                # Si un contour est à moins de 10 pixel du point (coin en haut à droite de la zone d'analyse)
-                if abs(cv2.pointPolygonTest(c, (self.x2 - self.x1, 1), True)) < 10 and cv2.contourArea(c) > 100:
+                # Si un contour est à moins de 15 pixel du point (coin en haut à droite de la zone d'analyse)
+                if abs(cv2.pointPolygonTest(c, (self.x2 - self.x1, 1), True)) < 15 and cv2.contourArea(c) > 100:
                     cMousseBrasArriere = c
 
             if cMousseBrasArriere is None:

@@ -10,12 +10,6 @@ from analyzers.analyseSafran import AnalyseSafran
 from analyzers.analyseMousse import AnalyseMousse
 
 
-"""
-TODO:   - mesurer le nombre d'image sur une durée d'une minute
-        - calibrer les deux caméras avec le mouvement d'un objet.
-"""
-
-
 class Main():
     """
     Class principale éxécuté au début du programme
@@ -33,7 +27,7 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/ccc2.mp4")
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoTribord.mp4")
         self.cap2 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoBabord.mp4")
         #self.cap = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
         #self.cap2 = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
@@ -55,7 +49,7 @@ class Main():
 
         # liste des threads
         self.analyseVideoList = []
-        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analyses, "Tribord"))
+        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesTribord, "Tribord"))
         self.analyseVideoList.append(AnalyseVideo(self.cap2, self.analysesBabord, "Babord"))
 
         self.listData = {}

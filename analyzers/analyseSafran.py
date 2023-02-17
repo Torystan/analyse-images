@@ -52,7 +52,7 @@ class AnalyseSafran(AnalyseContour):
             contourSafran = None
 
             for c in contours_list_safran:
-                # Si un contour est à moins de 7 pixel du point (point sur le bord avant du safran)
+                # Si un contour est à moins de 15 pixel du point (point sur le bord avant du safran)
                 if abs(cv2.pointPolygonTest(c, (self.x1RefPoint + 1, self.y1RefPoint + 3), True)) < 15:
                     contourSafran = c
                     tOffSetSafran = (self.x1, self.y1)
@@ -84,21 +84,6 @@ class AnalyseSafran(AnalyseContour):
                         # Décalage des coordonnées du contour pour correspondre sur l'image original (frame)
                         contourSafranOffset = contourSafran + (self.x1, self.y1)
 
-                        '''
-                        gray_img_safran2 = cv2.cvtColor(gray_img_safran, cv2.COLOR_GRAY2BGR)
-                        
-                        cv2.drawContours(gray_img_safran2, [contourSafran], 0, (255, 0, 255), 2)
-                        cv2.line(gray_img_safran2, firstPointSafran, secondPointSafran, (0, 255, 0), 2)
-
-                        imagesConcat = np.concatenate((cv2.cvtColor(edged, cv2.COLOR_GRAY2BGR), gray_img_safran2), axis=1)
-                        cv2.imshow('frameSafran', imagesConcat)
-                        cv2.waitKey(1)
-                        '''
-
                         return Contour(hauteurSafran, contourSafranOffset, firstPointSafranOffSet, secondPointSafranOffSet, qualityIndex)
 
-        '''
-        cv2.imshow('frameSafran', gray_img_safran)
-        cv2.waitKey(1)
-        '''
         return Contour(None, None, None, None, qualityIndex)

@@ -35,6 +35,8 @@ def click_event(event, x, y, flags, params):
             
             # affichage d'un cercle sur le point cliqué
             cv2.circle(img, (refPt[0]), 2, (0,255,255), -1)
+
+            print(f'({refPt[0][0]}, {refPt[0][1]})')
         else:
             # déplace les deux points du rectangle pour que le point de départ soit toujours en haut à gauche et le point de fin en bas à droite
             if refPt[0][0] > refPt[1][0]:
@@ -55,10 +57,12 @@ def click_event(event, x, y, flags, params):
             # affichage des coordonnées du rectangle
             cv2.circle(img, (refPt[0]), 2, (0,255,255), -1)
             cv2.circle(img, (refPt[1]), 2, (0,255,255), -1)
-            cv2.putText(img, f'({x},{y})', refPt[0],
+            cv2.putText(img, f'({refPt[0][0]},{refPt[0][1]})', refPt[0],
             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-            cv2.putText(img, f'({x},{y})', refPt[1],
+            cv2.putText(img, f'({refPt[1][0]},{refPt[1][1]})', refPt[1],
             cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+
+            print(f'({refPt[0][0]}, {refPt[0][1]}, {refPt[1][0]}, {refPt[1][1]})')
 
  
 # ouverture de la fenêtre de sélection de l'image
