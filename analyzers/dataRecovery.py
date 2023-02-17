@@ -16,7 +16,7 @@ class DataRecovery():
 
         self.data = {}
 
-    def addData(self, key, numFrame, contour):
+    def addData(self, key, numFrame, date, contour):
         """
         Fonction qui ajoute des données à l'attribut data.
   
@@ -27,9 +27,10 @@ class DataRecovery():
         """
 
         if key not in self.data:
-            self.data[key] = {"numFrame": [], "height": [], "contour": [], "firstPosMeasure": [], "secondPosMeasure": [], "quality": []}
+            self.data[key] = {"numFrame": [], "date": [], "height": [], "contour": [], "firstPosMeasure": [], "secondPosMeasure": [], "quality": []}
 
         self.data[key]["numFrame"].append(numFrame)
+        self.data[key]["date"].append(date)
 
         self.data[key]["height"].append(contour.height)
         self.data[key]["contour"].append(contour.contour)

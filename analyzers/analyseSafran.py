@@ -14,16 +14,21 @@ class AnalyseSafran(AnalyseContour):
         yRefPoint (int): coordonnée y du point de référence pour démarer la mesure, correspond au point le plus haut du safran.
     """
 
-    def __init__(self, x1, y1, x2, y2, xRefPoint, yRefPoint):
+    def __init__(self, x1, y1, x2, y2, x1RefPoint, y1RefPoint, x2RefPoint, y2RefPoint):
         super().__init__(x1, y1, x2, y2)
-        self.qualityLimit = 21
-        self.xRefPoint = xRefPoint
-        self.yRefPoint = yRefPoint
+        self.qualityLimit = 12
+        self.x1RefPoint = x1RefPoint - x1
+        self.y1RefPoint = y1RefPoint - y1
+        self.x2RefPoint = x2RefPoint - x1
+        self.y2RefPoint = y2RefPoint - y1
 
     def compute(self, frame):
         """
         Méthode qui mesure la taille du safran qui sort de l'eau.
         """
+
+        m = (self.y2RefPoint - self.y1RefPoint) / (self.x2RefPoint - self.x1RefPoint)
+        p = self.y1RefPoint - m * self.x1RefPoint
 
         cropFrame = frame[self.y1:self.y2, self.x1:self.x2]
 
@@ -35,8 +40,9 @@ class AnalyseSafran(AnalyseContour):
         
 
         # dessins de toutes les bordures
-        lower = int(max(0, 1.5*qualityIndex))
-        upper = int(min(255, 4*qualityIndex))
+        median_pix = np.median(gray_img_safran) 
+        lower = int(max(0, 0.7*median_pix))
+        upper = int(min(255, 1.3*median_pix))
         edged = cv2.Canny(gray_img_safran, lower, upper)
 
         # Détection des contours
@@ -47,27 +53,27 @@ class AnalyseSafran(AnalyseContour):
             contourSafran = None
 
             for c in contours_list_safran:
-                # Si un contour est à moins de 4 pixel du point (68, 17) (point sur le bord gauche du safran)
-                if abs(cv2.pointPolygonTest(c, (self.xRefPoint + 1, self.yRefPoint + 10), True)) < 4:
+                # Si un contour est à moins de 7 pixel du point (point sur le bord avant du safran)
+                if abs(cv2.pointPolygonTest(c, (self.x1RefPoint + 1, self.y1RefPoint + 1), True)) < 7:
                     contourSafran = c
                     tOffSetSafran = (self.x1, self.y1)
 
                     points = []
 
-                    # Regarde si les points correspondent plus ou moins à l'équation 38x -7y = 2424
+                    # Regarde si les points correspondent plus ou moins à l'équation du safran
                     # Equation qui représente la droite au niveau du safran
-                    for p in c:
-                        x = p[0][0]
-                        y = p[0][1]
+                    for point in c:
+                        x = point[0][0]
+                        y = point[0][1]
                         # Résultat de l'équation
-                        resultEquation = (38 * x - 7 * y)
+                        resultEquation = m * x - y + p
 
-                        if resultEquation > 2424 - 80 and resultEquation < 2424 + 80:
+                        if resultEquation > -15 and resultEquation < 15:
                             points.append((x, y))
 
                     if len(points) >= 2:
                         # firstPointSafran = min(points, key=lambda x:x[1]) # Plus petite valeur en y
-                        firstPointSafran = (self.xRefPoint, self.yRefPoint)
+                        firstPointSafran = (self.x1RefPoint, self.y1RefPoint)
                         # Plus grande valeur en y
                         secondPointSafran = max(points, key=lambda x: x[1])
 

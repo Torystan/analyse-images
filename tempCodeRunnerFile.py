@@ -1,1 +1,1 @@
-cv2.imshow('frame', frame)
+269

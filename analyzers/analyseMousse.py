@@ -11,7 +11,7 @@ class AnalyseMousse(AnalyseContour):
 
     def __init__(self, x1, y1, x2, y2):
         super().__init__(x1, y1, x2, y2)
-        self.qualityLimit = 36
+        self.qualityLimit = 12
     
     def compute(self, frame):
 
@@ -19,10 +19,16 @@ class AnalyseMousse(AnalyseContour):
         
         # Conversion en noir et blanc et floutage
         gray_img_MousseBrasArriere = cv2.cvtColor(cropFrame, cv2.COLOR_BGR2GRAY)
-        gray_img_MousseBrasArriere = cv2.GaussianBlur(gray_img_MousseBrasArriere, (11, 11), 0)
+        gray_img_MousseBrasArriere = cv2.GaussianBlur(gray_img_MousseBrasArriere, (7, 7), 0)
 
-        # Conversion de l'image grisé en image binaire, 2 couleurs de pixel, noir et blanc, plus de gris (binarization opencv)
-        ret, binary_img_MousseBrasArriere = cv2.threshold(gray_img_MousseBrasArriere, 90, 255, cv2.THRESH_BINARY)
+        # Conversion de l'image grisé en image binaire, 2 couleurs de pixel, noir et blanc (binarisation opencv)
+        median_pix_total = np.median(gray_img_MousseBrasArriere[round((self.y2-self.y1)/1.1):round((self.y2-self.y1)), round((self.x2-self.x1)/1.1):round((self.x2-self.x1))])
+        median_pix = 0.95 * np.median(gray_img_MousseBrasArriere[0:round((self.y2-self.y1)/15), 0:round((self.x2-self.x1)/15)])
+        ret, binary_img_MousseBrasArriere = cv2.threshold(gray_img_MousseBrasArriere, median_pix, 255, cv2.THRESH_BINARY)
+
+        #print("median_pix_total : " + str(median_pix_total))
+        #print("median_pix : " + str(median_pix))
+        #print("median_pix_moins : " + str(median_pix * 0.95))
 
         # Détection des contours
         # La variable de hiérarchie contient des informations sur la relation entre chaque contour. (si un contour est dans un contour)
@@ -34,8 +40,15 @@ class AnalyseMousse(AnalyseContour):
 
         if contours_list_MousseBrasArriere:
 
-            # Récupère le contour le plus grand
-            cMousseBrasArriere = max(contours_list_MousseBrasArriere, key=cv2.contourArea)
+            # Trouver le contour le plus proche du coin en haut à droite (pour éviter les contours parasites)
+            cMousseBrasArriere = None
+            for c in contours_list_MousseBrasArriere:
+                # Si un contour est à moins de 10 pixel du point (coin en haut à droite de la zone d'analyse)
+                if abs(cv2.pointPolygonTest(c, (self.x2 - self.x1, 1), True)) < 10 and cv2.contourArea(c) > 100:
+                    cMousseBrasArriere = c
+
+            if cMousseBrasArriere is None:
+                return Contour(None, None, None, None, qualityIndex)
 
             right = tuple(cMousseBrasArriere[cMousseBrasArriere[:, :, 0].argmax()][0]) # valeur x maximal parmis tous les x
             rightPoints = np.where(cMousseBrasArriere[:, :, 0] == right[0]) # cherche toutes les valeurs égales à la valeur la plus à droite parmis les x
@@ -49,14 +62,16 @@ class AnalyseMousse(AnalyseContour):
                 # quatrième crochet -> x = 0 et y = 1
                 x1 = (cMousseBrasArriere[rightPoints[0][0]][0])[0]
                 y1 = (cMousseBrasArriere[rightPoints[0][0]][0])[1]
-                x2 = (cMousseBrasArriere[rightPoints[0][len(rightPoints[0])-1]][0])[0]
-                y2 = (cMousseBrasArriere[rightPoints[0][len(rightPoints[0])-1]][0])[1]
+                x2 = (cMousseBrasArriere[rightPoints[0][1]][0])[0]
+                y2 = (cMousseBrasArriere[rightPoints[0][1]][0])[1]
 
                 # Si les deux coordonnées ne sont pas dans le bon ordre
                 if y2 > y1:
                     temp = y2
                     y2 = y1
                     y1 = temp
+
+                y2 = 0
 
                 # Décalage des coordonnées du contour pour correspondre sur l'image original (frame)
                 cMousseBrasArriere = cMousseBrasArriere + (self.x1, self.y1)
