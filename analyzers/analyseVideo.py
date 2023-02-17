@@ -28,7 +28,7 @@ class AnalyseVideo(threading.Thread):
 
         self.name = name
         self.cap = video
-        self.record = False
+        self.record = True
         self.videoObject = None
         self.nbFrame = 1
 
@@ -41,8 +41,9 @@ class AnalyseVideo(threading.Thread):
             frame_width = int(self.cap.get(3))
             frame_height = int(self.cap.get(4))
 
+            print(str(self.cap.get(cv2.CAP_PROP_FPS)) + self.name)
             size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/../video/recordDirectSafran.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 25, size)
+            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/../video/record/record" + self.name + ".mp4", cv2.VideoWriter_fourcc(*'mp4v'), self.cap.get(cv2.CAP_PROP_FPS), size)
 
     def run(self):
         """
@@ -69,6 +70,8 @@ class AnalyseVideo(threading.Thread):
 
             ###### Dessin des données #####
 
+            i = 0
+
             for aMeasureKey, aMeasureValue in self.dataRecovery.data.items():
                 if aMeasureValue["height"][-1] != None:  # Pas de dessin des mesures vides
                     
@@ -80,7 +83,8 @@ class AnalyseVideo(threading.Thread):
                     cv2.drawContours(frame, [aMeasureValue["contour"][-1]], 0, (255, 0, 255), 1)
                     cv2.line(frame, aMeasureValue["firstPosMeasure"][-1], aMeasureValue["secondPosMeasure"][-1], color, 2)
 
-            cv2.putText(frame, "Erreur " + aMeasureKey + ": ", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+                cv2.putText(frame, "Erreur " + aMeasureKey + ": " + str(aMeasureValue["quality"][-1]), (10, 110 + i*35), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+                i += 1
 
             cv2.putText(frame, str(self.nbFrame), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2, cv2.LINE_AA)
             cv2.putText(frame, "Erreur : ", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)

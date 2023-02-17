@@ -14,9 +14,8 @@ class AnalyseSafran(AnalyseContour):
         yRefPoint (int): coordonnée y du point de référence pour démarer la mesure, correspond au point le plus haut du safran.
     """
 
-    def __init__(self, x1, y1, x2, y2, x1RefPoint, y1RefPoint, x2RefPoint, y2RefPoint):
-        super().__init__(x1, y1, x2, y2)
-        self.qualityLimit = 12
+    def __init__(self, x1, y1, x2, y2, x1RefPoint, y1RefPoint, x2RefPoint, y2RefPoint, qualityLimit):
+        super().__init__(x1, y1, x2, y2, qualityLimit)
         self.x1RefPoint = x1RefPoint - x1
         self.y1RefPoint = y1RefPoint - y1
         self.x2RefPoint = x2RefPoint - x1
@@ -40,9 +39,9 @@ class AnalyseSafran(AnalyseContour):
         
 
         # dessins de toutes les bordures
-        median_pix = np.median(gray_img_safran) 
-        lower = int(max(0, 0.7*median_pix))
-        upper = int(min(255, 1.3*median_pix))
+        median_pix = np.median(gray_img_safran)
+        lower = int(max(0, 0.6*median_pix))
+        upper = int(min(255, 1.25*median_pix))
         edged = cv2.Canny(gray_img_safran, lower, upper)
 
         # Détection des contours
@@ -54,7 +53,7 @@ class AnalyseSafran(AnalyseContour):
 
             for c in contours_list_safran:
                 # Si un contour est à moins de 7 pixel du point (point sur le bord avant du safran)
-                if abs(cv2.pointPolygonTest(c, (self.x1RefPoint + 1, self.y1RefPoint + 1), True)) < 7:
+                if abs(cv2.pointPolygonTest(c, (self.x1RefPoint + 1, self.y1RefPoint + 3), True)) < 15:
                     contourSafran = c
                     tOffSetSafran = (self.x1, self.y1)
 

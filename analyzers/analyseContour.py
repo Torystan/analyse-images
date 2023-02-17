@@ -10,9 +10,10 @@ class AnalyseContour():
         x2 (int): Deuxième coordonnée x de la zone à analyser sur l'image.
         y2 (int): Deuxième coordonnée y de la zone à analyser sur l'image.
         embrunDetection (EmbrunDetection): Objet EmbrunDetection permettant de détecter l'embrun dans la zone à analyser
+        qualityLimit (int): Limite de qualité de la zone pour l'analyse.
     """
 
-    def __init__(self, x1, y1, x2, y2):
+    def __init__(self, x1, y1, x2, y2, qualityLimit):
         """
         Contructeur de la class AnalyseContour.
             
@@ -21,6 +22,7 @@ class AnalyseContour():
             y1 (int): Première coordonnée y de la zone à analyser sur l'image.
             x2 (int): Deuxième coordonnée x de la zone à analyser sur l'image.
             y2 (int): Deuxième coordonnée y de la zone à analyser sur l'image.
+            qualityLimit (int): Limite de qualité de la zone pour l'analyse.
         """
 
         self.x1 = x1
@@ -28,6 +30,7 @@ class AnalyseContour():
         self.y1 = y1
         self.y2 = y2
         self.embrunDetection = EmbrunDetection()
+        self.qualityLimit = qualityLimit
 
     def compute(self, frame):
         """

@@ -9,9 +9,8 @@ class AnalyseDerive(AnalyseContour):
     Class qui mesure la taille de la dérive qui sort de l'eau.
     """
 
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(x1, y1, x2, y2)
-        self.qualityLimit = 12
+    def __init__(self, x1, y1, x2, y2, qualityLimit):
+        super().__init__(x1, y1, x2, y2, qualityLimit)
     
     def compute(self, frame):
 
@@ -22,8 +21,8 @@ class AnalyseDerive(AnalyseContour):
         gray_img_ecume = cv2.GaussianBlur(gray_img_ecume, (7, 7), 0)
 
         # Conversion de l'image grisé en image binaire, 2 couleurs de pixel, noir et blanc, plus de gris (binarization opencv)
-        median_pix = np.median(gray_img_ecume[0:round((self.y2-self.y1)/20), 0:round((self.x2-self.x1)/20)])
-        ret, binary_img_ecume = cv2.threshold(gray_img_ecume, 0.90*median_pix, 255, cv2.THRESH_BINARY)
+        median_pix = np.median(gray_img_ecume[0:round((self.y2-self.y1)/5), 0:(self.x2-self.x1) - round((self.x2-self.x1)/10)])
+        ret, binary_img_ecume = cv2.threshold(gray_img_ecume, 0.80*median_pix, 255, cv2.THRESH_BINARY)
 
         # Détection des contours
         # La variable de hiérarchie contient des informations sur la relation entre chaque contour. (si un contour est dans un contour)

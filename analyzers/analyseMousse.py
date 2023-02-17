@@ -9,9 +9,8 @@ class AnalyseMousse(AnalyseContour):
     Class qui mesure la taille de la mousse en dessous du bras arrière du bateau.
     """
 
-    def __init__(self, x1, y1, x2, y2):
-        super().__init__(x1, y1, x2, y2)
-        self.qualityLimit = 12
+    def __init__(self, x1, y1, x2, y2, qualityLimit):
+        super().__init__(x1, y1, x2, y2, qualityLimit)
     
     def compute(self, frame):
 
@@ -19,16 +18,11 @@ class AnalyseMousse(AnalyseContour):
         
         # Conversion en noir et blanc et floutage
         gray_img_MousseBrasArriere = cv2.cvtColor(cropFrame, cv2.COLOR_BGR2GRAY)
-        gray_img_MousseBrasArriere = cv2.GaussianBlur(gray_img_MousseBrasArriere, (7, 7), 0)
+        gray_img_MousseBrasArriere = cv2.GaussianBlur(gray_img_MousseBrasArriere, (9, 9), 0)
 
         # Conversion de l'image grisé en image binaire, 2 couleurs de pixel, noir et blanc (binarisation opencv)
-        median_pix_total = np.median(gray_img_MousseBrasArriere[round((self.y2-self.y1)/1.1):round((self.y2-self.y1)), round((self.x2-self.x1)/1.1):round((self.x2-self.x1))])
-        median_pix = 0.95 * np.median(gray_img_MousseBrasArriere[0:round((self.y2-self.y1)/15), 0:round((self.x2-self.x1)/15)])
+        median_pix = 0.80 * np.median(gray_img_MousseBrasArriere[0:round((self.y2-self.y1)/5), 0:(self.x2-self.x1) - round((self.x2-self.x1)/10)])
         ret, binary_img_MousseBrasArriere = cv2.threshold(gray_img_MousseBrasArriere, median_pix, 255, cv2.THRESH_BINARY)
-
-        #print("median_pix_total : " + str(median_pix_total))
-        #print("median_pix : " + str(median_pix))
-        #print("median_pix_moins : " + str(median_pix * 0.95))
 
         # Détection des contours
         # La variable de hiérarchie contient des informations sur la relation entre chaque contour. (si un contour est dans un contour)
