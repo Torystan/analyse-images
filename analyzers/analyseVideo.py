@@ -6,7 +6,6 @@ import threading
 from analyzers.dataRecovery import DataRecovery
 
 
-
 class AnalyseVideo(threading.Thread):
     """
     Class qui permet d'analyser une vidéo et de récupérer les données.
@@ -41,7 +40,6 @@ class AnalyseVideo(threading.Thread):
             frame_width = int(self.cap.get(3))
             frame_height = int(self.cap.get(4))
 
-            print(str(self.cap.get(cv2.CAP_PROP_FPS)) + self.name)
             size = (frame_width, frame_height)
             self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/../video/record/record" + self.name + ".mp4", cv2.VideoWriter_fourcc(*'mp4v'), self.cap.get(cv2.CAP_PROP_FPS), size)
 
@@ -100,8 +98,8 @@ class AnalyseVideo(threading.Thread):
             # Afficher l'image avec les dessins
             cv2.imshow(self.name, frame)
 
-            # waitKey(x) -> Attendre x milliseconde, et regarde si l'utilisateur appuie sur 'q' pour quitter
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            # waitKey(x) -> Attendre x milliseconde, et regarde si l'utilisateur appuie sur échap pour quitter
+            if cv2.waitKey(1) & 0xFF == 27:
                 break
 
             self.nbFrame += 1

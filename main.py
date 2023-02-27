@@ -3,9 +3,9 @@ import cv2  # OpenCV library
 from scipy.ndimage import uniform_filter1d
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+import plotly.express as px
 
 from analyzers.analyseVideo import AnalyseVideo
-from analyzers.analyseDerive import AnalyseDerive
 from analyzers.analyseSafran import AnalyseSafran
 from analyzers.analyseMousse import AnalyseMousse
 
@@ -27,25 +27,26 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoTribord.mp4")
-        self.cap2 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoBabord.mp4")
-        #self.cap = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
-        #self.cap2 = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
+        #self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoTribord.mp4")
+        #self.cap2 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoBabord.mp4")
+        self.cap = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
+        self.cap2 = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
 
+        # Liste des zones d'analyses
         self.analyses = {}
-        self.analyses["derive"] = AnalyseDerive(1462, 271, 1514, 410, 27)
+        self.analyses["derive"] = AnalyseMousse(1462, 271, 1514, 410, 27)
         self.analyses["safran"] = AnalyseSafran(355, 433, 451, 572, 411, 435, 423, 506, 21)
         self.analyses["mousse"] = AnalyseMousse(570, 380, 715, 637, 31)
 
         self.analysesTribord = {}
-        self.analysesTribord["derive"] = AnalyseDerive(878, 423, 895, 484, 17)
+        self.analysesTribord["derive"] = AnalyseMousse(878, 423, 895, 484, 20)
         self.analysesTribord["safran"] = AnalyseSafran(520, 406, 609, 549, 562, 413, 578, 467, 12)
-        self.analysesTribord["mousse"] = AnalyseMousse(632, 415, 680, 526, 12)
+        self.analysesTribord["mousse"] = AnalyseMousse(632, 415, 680, 526, 14)
 
         self.analysesBabord = {}
-        self.analysesBabord["derive"] = AnalyseDerive(850, 568, 888, 654, 13)
+        self.analysesBabord["derive"] = AnalyseMousse(850, 568, 888, 654, 25)
         self.analysesBabord["safran"] = AnalyseSafran(1234, 537, 1337, 669, 1315, 550, 1262, 645, 23)
-        self.analysesBabord["mousse"] = AnalyseMousse(1170, 555, 1218, 665, 24)
+        self.analysesBabord["mousse"] = AnalyseMousse(1170, 555, 1218, 665, 25)
 
         # liste des threads
         self.analyseVideoList = []
@@ -59,14 +60,15 @@ class Main():
         Fonction d'éxécution du programme principal.
         """
 
-        # démarre les threads
+        # Démarre les threads
         for analyseVideo in self.analyseVideoList:
             analyseVideo.start()
 
-        # attend la fin des threads
+        # Attend la fin des threads
         for analyseVideo in self.analyseVideoList:
             analyseVideo.join()
 
+        # Récupération des données
         for analyseVideo in self.analyseVideoList:
             self.listData[analyseVideo.name] = analyseVideo.dataRecovery
 
@@ -82,29 +84,30 @@ class Main():
                 # Suppression des lignes ou la hauteur est nulle
                 dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].dropna()
                 
-                # suppression des données de qualité inférieure à la limite
+                # Suppression des données de qualité inférieure à la limite
                 for analyseVideo in self.analyseVideoList:
                     if analyseVideo.name == key:
                         dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].loc[dataRecovery.data[aMeasureKey]["quality"] > analyseVideo.analyses[aMeasureKey].qualityLimit]
 
                 # Moyenne glissante
-                dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=25)
+                dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
 
             ###### Affichage des résultats ######
 
             for aMeasureKey in dataRecovery.data:
+
+                # Courbes de qualité
                 fig.append_trace(go.Scatter(
                 x=copyDataRecovery[aMeasureKey]["numFrame"].values.tolist(),
                 y=copyDataRecovery[aMeasureKey]["quality"],
-                name="qualité_"+aMeasureKey + "_" + key
+                name="qualité_"+aMeasureKey + "_" + key,
                 ), row=2, col=1)
             
-            # Courbes
-            for aMeasureKey in dataRecovery.data:
+                # Courbes des hauteurs
                 fig.append_trace(go.Scatter(
                     x=dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(),
                     y=dataRecovery.data[aMeasureKey]["height"],
-                    name=aMeasureKey + "_" + key
+                    name=aMeasureKey + "_" + key,
                 ), row=1, col=1)
 
                 copyDataRecovery[aMeasureKey].to_excel(os.path.dirname(__file__) + "/files/outputMesures" + key + aMeasureKey +".xlsx", index = False)
