@@ -27,7 +27,7 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord3.mp4")
 
         # Liste des zones d'analyses
         self.analysesTribord = {}
@@ -42,7 +42,7 @@ class Main():
 
         # liste des threads
         self.analyseVideoList = []
-        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesBabord, "videoBabord2"))
+        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesBabord, "videoBabord"))
 
         self.listData = {}
 
@@ -103,15 +103,15 @@ class Main():
 
                 copyDataRecovery[aMeasureKey].to_excel(os.path.dirname(__file__) + "/files/outputMesures" + key + aMeasureKey +".xlsx", index = False)
 
+                list = []
+                oldI = 0
+                for i in dataRecovery.data[aMeasureKey]["date"].values.tolist():
+                    list.append(i - oldI)
+                    oldI = i
+                print(aMeasureKey, str(statistics.median(list)/1000000))
+
         fig.update_layout(title_text="Courbes des hauteurs et qualité de mesure")
         fig.show()
-
-        list = []
-        oldI = 0
-        for i in dataRecovery.data[aMeasureKey]["date"].values.tolist():
-            list.append(i - oldI)
-            oldI = i
-        print(str(statistics.median(list)/1000000))
 
 if __name__ == "__main__":
     Main().execute()
