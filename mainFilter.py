@@ -1,15 +1,18 @@
 import os
 import cv2  # OpenCV library
-import matplotlib.pyplot as plt
-import numpy as np
 from scipy.ndimage import uniform_filter1d
 from scipy.signal import butter, lfilter, filtfilt, freqz
+import scipy.signal as signal
+import numpy as np
 from numpy.fft import fft, fftfreq
+import matplotlib.pyplot as plt
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import plotly.express as px
 
-from analyzers.analyseDerive import AnalyseDerive
+from analyzers.analyseVideo import AnalyseVideo
 from analyzers.analyseSafran import AnalyseSafran
 from analyzers.analyseMousse import AnalyseMousse
-from analyzers.dataRecovery import DataRecovery
 
 
 class Main():
@@ -29,25 +32,24 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc3.mp4")
-        self.record = False
-        self.videoObject = None
-        self.nbFrame = 1
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
 
-        self.analyses = {}
-        #self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
-        self.analyses["safran"] = AnalyseSafran(344, 430, 481, 579, 67, 7)
-        #self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
+        # Liste des zones d'analyses
+        self.analysesTribord = {}
+        self.analysesTribord["derive"] = AnalyseMousse(934, 413, 956, 474, 14)
+        self.analysesTribord["safran"] = AnalyseSafran(596, 367, 663, 493, 626, 380, 641, 448, 10)
+        self.analysesTribord["mousse"] = AnalyseMousse(694, 388, 714, 496, 21)
 
-        self.dataRecovery = DataRecovery()
+        self.analysesBabord = {}
+        self.analysesBabord["derive"] = AnalyseMousse(946, 358, 987, 452, 9)
+        self.analysesBabord["safran"] = AnalyseSafran(1325, 336, 1408, 470, 1402, 342, 1368, 408, 1)
+        self.analysesBabord["mousse"] = AnalyseMousse(1262, 346, 1298, 483, 1)
 
-        # Enregistrement
-        if self.record:
-            frame_width = int(self.cap.get(3))
-            frame_height = int(self.cap.get(4))
+        # liste des threads
+        self.analyseVideoList = []
+        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesBabord, "videoBabord"))
 
-            size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
+        self.listData = {}
 
     def butter_lowpass(self, cutoff, fs, order=5):
         nyq = 0.5 * fs
@@ -73,162 +75,111 @@ class Main():
 
     def execute(self):
         """
-        Fonction d'éxécution du programme principal de la lecture de la vidéo à l'affichage des données.
+        Fonction d'éxécution du programme principal.
         """
 
-        while True:
+        # Démarre les threads
+        for analyseVideo in self.analyseVideoList:
+            analyseVideo.start()
 
-            ###### Lecture de la vidéo ######
+        # Attend la fin des threads
+        for analyseVideo in self.analyseVideoList:
+            analyseVideo.join()
 
-            # Récupère une image de la vidéo
-            ret, frame = self.cap.read()
-            if frame is None:
-                print("-----  Fin de la vidéo  -----")
-                break
-
-            ###### Récupération des données ######
-
-            for analyseKey, analyseObject in self.analyses.items():
-                result = analyseObject.compute(frame)
-                self.dataRecovery.addData(analyseKey, self.nbFrame, result)
-
-            ###### Dessin des données #####
-
-            for aMeasureKey, aMeasureValue in self.dataRecovery.data.items():
-                if aMeasureValue["height"][-1] != None:  # Pas de dessin des mesures vides
-                    
-                    # ligne de mesure couleur verte si correct, rouge si occulté par l'embrun
-                    color = (0, 255, 0)
-                    if aMeasureValue["quality"][-1] < self.analyses[aMeasureKey].qualityLimit:
-                        color = (0, 0, 255)
-
-
-                    cv2.drawContours(frame, [aMeasureValue["contour"][-1]], 0, (255, 0, 255), 2)
-                    cv2.line(frame, aMeasureValue["firstPosMeasure"][-1], aMeasureValue["secondPosMeasure"][-1], color, 2)
-
-            cv2.putText(frame, str(self.nbFrame), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(frame, "Erreur : ", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-
-            cv2.putText(frame, str(self.dataRecovery.data["safran"]["quality"][-1]), (145, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-
-            ###### Fin de l'analyse de l'image ######
-
-            # Enregistrement
-            if self.record:
-                self.videoObject.write(frame)
-
-            # Afficher l'image avec les dessins
-            cv2.imshow('frame', frame)
-
-            # waitKey(x) -> Attendre x milliseconde, et regarde si l'utilisateur appuie sur 'q' pour quitter
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-            self.nbFrame += 1
-
-        ###### Fin de l'analyse de la vidéo #####
-
-        self.cap.release()
-
-        # Enregistrement
-        if self.record:
-            self.videoObject.release()
-
-        cv2.destroyAllWindows()
+        # Récupération des données
+        for analyseVideo in self.analyseVideoList:
+            self.listData[analyseVideo.name] = analyseVideo.dataRecovery
 
         ###### Traitement des données #####
 
-        self.dataRecovery.convertToDataframe()
+        for key, dataRecovery in self.listData.items():
+            dataRecovery.convertToDataframe()
+            copyDataRecovery = dataRecovery.data.copy()
 
-        fig, axs = plt.subplots(2)
-        fig.suptitle('Hauteur en pixels en fonction du temps avc courbe de qualité')
+            for aMeasureKey in dataRecovery.data:
+                # Suppression des lignes ou la hauteur est nulle
+                dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].dropna()
+                
+                # Suppression des données de qualité inférieure à la limite
+                for analyseVideo in self.analyseVideoList:
+                    if analyseVideo.name == key:
+                        dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].loc[dataRecovery.data[aMeasureKey]["quality"] > analyseVideo.analyses[aMeasureKey].qualityLimit]
 
-        for aMeasureKey in self.dataRecovery.data:
-            axs[1].plot(self.dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), self.dataRecovery.data[aMeasureKey]["quality"], label=aMeasureKey)
+                # Moyenne glissante
+                dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
 
-        for aMeasureKey in self.dataRecovery.data:
-            # On garde uniquement les données de bonne qualité
-            self.dataRecovery.data[aMeasureKey] = self.dataRecovery.data[aMeasureKey].dropna()
-            self.dataRecovery.data[aMeasureKey] = self.dataRecovery.data[aMeasureKey].loc[self.dataRecovery.data[aMeasureKey]["quality"] > self.analyses[aMeasureKey].qualityLimit]
+            ###### Affichage des résultats ######
 
-            # Moyenne glissante
-            #self.dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(self.dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
+        fig = make_subplots(rows=3, cols=1)
 
-        moyenneGlissante = uniform_filter1d(self.dataRecovery.data["safran"]["height"].values.tolist(), size=15)
-
-        ###### Affichage des résultats ######
-
-        # Courbes
-        for aMeasureKey in self.dataRecovery.data:
-            axs[0].plot(self.dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), self.dataRecovery.data[aMeasureKey]["height"], label=aMeasureKey)
-
-        axs[0].plot(self.dataRecovery.data["safran"]["numFrame"].values.tolist(), moyenneGlissante, label="safranMoy")
-
-        plt.legend()
-        plt.figure()
+        # Courbe
 
         # Setting standard filter requirements.
         order = 3
         fs = 30.0
-        cutoff = 0.35
+        cutoff = 0.4
 
         # Creating the data for filteration
-        t = self.dataRecovery.data["safran"]["numFrame"].values.tolist()
+        t = dataRecovery.data["mousse"]["numFrame"].values.tolist()
 
-        data = self.dataRecovery.data["safran"]["height"]
+        data = dataRecovery.data["mousse"]["height"]
 
         # Filtering and plotting
-        y = self.butter_lowpass_filter(data, cutoff, fs, order)
+        filterY = self.butter_lowpass_filter(data, cutoff, fs, order)
 
-        plt.plot(t, data, 'b-', label='data')
-        plt.plot(t, y, 'g-', linewidth=2, label='filtered data')
-        plt.xlabel('Images')
-        plt.grid()
-        plt.legend()
-        plt.figure()
+        fig.append_trace(go.Scatter(
+        x=t,
+        y=data,
+        name="data",
+        ), row=1, col=1)
+
+        fig.append_trace(go.Scatter(
+        x=t,
+        y=filterY,
+        name="passe bas",
+        ), row=1, col=1)
 
         # Setting standard filter requirements.
         order = 3
         fs = 30.0
-        cutoff = 0.35
+        cutoff = 1
 
         # Creating the data for filteration
-        t = self.dataRecovery.data["safran"]["numFrame"].values.tolist()
+        t = dataRecovery.data["mousse"]["numFrame"].values.tolist()
 
-        data = self.dataRecovery.data["safran"]["height"]
+        data = dataRecovery.data["mousse"]["height"]
 
         # Filtering and plotting
-        y = self.butter_highpass_filter(data, cutoff, fs, order)
+        filterY = self.butter_highpass_filter(data, cutoff, fs, order)
 
-        plt.plot(t, data, 'b-', label='data')
-        plt.plot(t, y, 'g-', linewidth=2, label='filtered data')
-        plt.xlabel('Images')
-        plt.grid()
-        plt.legend()
-        plt.figure()
+        fig.append_trace(go.Scatter(
+        x=t,
+        y=filterY,
+        name="passe haut",
+        ), row=2, col=1)
 
         # Setting standard filter requirements.
         order = 3
         fs = 30.0
-        cutoff = 0.35
+        cutoff = 0.5
 
         # Creating the data for filteration
-        t = self.dataRecovery.data["safran"]["numFrame"].values.tolist()
+        t = dataRecovery.data["mousse"]["numFrame"].values.tolist()
 
-        data = self.dataRecovery.data["safran"]["height"]
+        data = dataRecovery.data["mousse"]["height"]
 
         # Filtering and plotting
         y = self.butter_highpass_filter(data, cutoff, fs, order)
         z = self.butter_lowpass_filter(y, 1, fs, order)
 
-        plt.plot(t, data, 'b-', label='data')
-        plt.plot(t, z, 'g-', linewidth=2, label='filtered data')
-        plt.xlabel('Images')
-        plt.grid()
-        plt.legend()
+        fig.append_trace(go.Scatter(
+        x=t,
+        y=z,
+        name="passe vague",
+        ), row=3, col=1)
 
-        plt.show()
-
+        fig.update_layout(title_text="Courbes des filtres passe haut et bas")
+        fig.show()
 
 if __name__ == "__main__":
     Main().execute()

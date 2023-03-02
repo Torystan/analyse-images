@@ -3,7 +3,7 @@ import cv2  # OpenCV library
 from scipy.ndimage import uniform_filter1d
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-import plotly.express as px
+import statistics
 
 from analyzers.analyseVideo import AnalyseVideo
 from analyzers.analyseSafran import AnalyseSafran
@@ -27,31 +27,22 @@ class Main():
         Constructeur de la class Main()
         """
 
-        #self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoTribord.mp4")
-        #self.cap2 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/videoBabord.mp4")
-        self.cap = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
-        self.cap2 = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp") # 192.168.1.55 ou 192.168.1.56
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
 
         # Liste des zones d'analyses
-        self.analyses = {}
-        self.analyses["derive"] = AnalyseMousse(1462, 271, 1514, 410, 27)
-        self.analyses["safran"] = AnalyseSafran(355, 433, 451, 572, 411, 435, 423, 506, 21)
-        self.analyses["mousse"] = AnalyseMousse(570, 380, 715, 637, 31)
-
         self.analysesTribord = {}
-        self.analysesTribord["derive"] = AnalyseMousse(878, 423, 895, 484, 20)
-        self.analysesTribord["safran"] = AnalyseSafran(520, 406, 609, 549, 562, 413, 578, 467, 12)
-        self.analysesTribord["mousse"] = AnalyseMousse(632, 415, 680, 526, 14)
+        self.analysesTribord["derive"] = AnalyseMousse(934, 413, 956, 474, 14)
+        self.analysesTribord["safran"] = AnalyseSafran(596, 367, 663, 493, 626, 380, 641, 448, 10)
+        self.analysesTribord["mousse"] = AnalyseMousse(694, 388, 714, 496, 21)
 
         self.analysesBabord = {}
-        self.analysesBabord["derive"] = AnalyseMousse(850, 568, 888, 654, 25)
-        self.analysesBabord["safran"] = AnalyseSafran(1234, 537, 1337, 669, 1315, 550, 1262, 645, 23)
-        self.analysesBabord["mousse"] = AnalyseMousse(1170, 555, 1218, 665, 25)
+        self.analysesBabord["derive"] = AnalyseMousse(946, 358, 987, 452, 9)
+        self.analysesBabord["safran"] = AnalyseSafran(1325, 336, 1408, 470, 1402, 342, 1368, 408, 1)
+        self.analysesBabord["mousse"] = AnalyseMousse(1262, 346, 1298, 483, 1)
 
         # liste des threads
         self.analyseVideoList = []
-        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesTribord, "Tribord"))
-        self.analyseVideoList.append(AnalyseVideo(self.cap2, self.analysesBabord, "Babord"))
+        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesBabord, "videoBabord2"))
 
         self.listData = {}
 
@@ -90,7 +81,7 @@ class Main():
                         dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].loc[dataRecovery.data[aMeasureKey]["quality"] > analyseVideo.analyses[aMeasureKey].qualityLimit]
 
                 # Moyenne glissante
-                dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
+                dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=15)
 
             ###### Affichage des résultats ######
 
@@ -114,6 +105,13 @@ class Main():
 
         fig.update_layout(title_text="Courbes des hauteurs et qualité de mesure")
         fig.show()
+
+        list = []
+        oldI = 0
+        for i in dataRecovery.data[aMeasureKey]["date"].values.tolist():
+            list.append(i - oldI)
+            oldI = i
+        print(str(statistics.median(list)/1000000))
 
 if __name__ == "__main__":
     Main().execute()

@@ -22,7 +22,7 @@ class AnalyseMousse(AnalyseContour):
         gray_img_mousse = cv2.GaussianBlur(gray_img_mousse, (7, 7), 0)
 
         # Calcul de la médiane des pixels d'une portion de l'image près du coin en haut à droite
-        median_pix = 0.8 * np.median(gray_img_mousse[0:math.ceil((self.y2-self.y1)/6), math.floor((self.x2-self.x1)*0.8):self.x2-self.x1])
+        median_pix = 0.90 * np.median(gray_img_mousse[0:math.ceil((self.y2-self.y1)/6), math.floor((self.x2-self.x1)*0.8):self.x2-self.x1])
 
         # Conversion de l'image grisé en image binaire, 2 couleurs de pixel, noir et blanc, plus de gris (binarization opencv)
         ret, binary_img_mousse = cv2.threshold(gray_img_mousse, median_pix, 255, cv2.THRESH_BINARY)

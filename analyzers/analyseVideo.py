@@ -27,7 +27,7 @@ class AnalyseVideo(threading.Thread):
 
         self.name = name
         self.cap = video
-        self.record = True
+        self.record = False
         self.videoObject = None
         self.nbFrame = 1
 

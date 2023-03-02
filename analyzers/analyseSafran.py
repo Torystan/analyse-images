@@ -2,6 +2,7 @@ import cv2  # OpenCV library
 from analyzers.analyseContour import AnalyseContour
 from analyzers.contour import Contour
 import cv2
+import math
 import numpy as np
 
 
@@ -40,8 +41,8 @@ class AnalyseSafran(AnalyseContour):
 
         # dessins de toutes les bordures
         median_pix = np.median(gray_img_safran)
-        lower = int(max(0, 0.6*median_pix))
-        upper = int(min(255, 1.25*median_pix))
+        lower = int(max(0, 0.5*median_pix))
+        upper = int(min(255, 1.2*median_pix))
         edged = cv2.Canny(gray_img_safran, lower, upper)
 
         # Détection des contours

@@ -1,15 +1,14 @@
 import os
 import cv2  # OpenCV library
-import matplotlib.pyplot as plt
 from scipy.ndimage import uniform_filter1d
 import scipy.signal as signal
 import numpy as np
 from numpy.fft import fft, fftfreq
+import matplotlib.pyplot as plt
 
-from analyzers.analyseDerive import AnalyseDerive
+from analyzers.analyseVideo import AnalyseVideo
 from analyzers.analyseSafran import AnalyseSafran
 from analyzers.analyseMousse import AnalyseMousse
-from analyzers.dataRecovery import DataRecovery
 
 
 class Main():
@@ -29,125 +28,79 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/ccc2.mp4")
-        self.record = False
-        self.videoObject = None
-        self.nbFrame = 1
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
 
-        self.analyses = {}
-        #self.analyses["derive"] = AnalyseDerive(1400, 250, 1514, 417)
-        self.analyses["safran"] = AnalyseSafran(344, 430, 481, 579, 67, 7)
-        #self.analyses["mousse"] = AnalyseMousse(550, 385, 650, 650)
+        # Liste des zones d'analyses
+        self.analysesTribord = {}
+        self.analysesTribord["derive"] = AnalyseMousse(934, 413, 956, 474, 14)
+        self.analysesTribord["safran"] = AnalyseSafran(596, 367, 663, 493, 626, 380, 641, 448, 10)
+        self.analysesTribord["mousse"] = AnalyseMousse(694, 388, 714, 496, 21)
 
-        self.dataRecovery = DataRecovery()
+        self.analysesBabord = {}
+        self.analysesBabord["derive"] = AnalyseMousse(946, 358, 987, 452, 9)
+        self.analysesBabord["safran"] = AnalyseSafran(1325, 336, 1408, 470, 1402, 342, 1368, 408, 1)
+        self.analysesBabord["mousse"] = AnalyseMousse(1262, 346, 1298, 483, 1)
 
-        # Enregistrement
-        if self.record:
-            frame_width = int(self.cap.get(3))
-            frame_height = int(self.cap.get(4))
+        # liste des threads
+        self.analyseVideoList = []
+        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesBabord, "videoBabord"))
 
-            size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/video/record.mp4", cv2.VideoWriter_fourcc(*'mp4v'), 30, size)
+        self.listData = {}
 
     def execute(self):
         """
-        Fonction d'éxécution du programme principal de la lecture de la vidéo à l'affichage des données.
+        Fonction d'éxécution du programme principal.
         """
 
-        while True:
+        # Démarre les threads
+        for analyseVideo in self.analyseVideoList:
+            analyseVideo.start()
 
-            ###### Lecture de la vidéo ######
+        # Attend la fin des threads
+        for analyseVideo in self.analyseVideoList:
+            analyseVideo.join()
 
-            # Récupère une image de la vidéo
-            ret, frame = self.cap.read()
-            if frame is None:
-                print("-----  Fin de la vidéo  -----")
-                break
-
-            ###### Récupération des données ######
-
-            for analyseKey, analyseObject in self.analyses.items():
-                result = analyseObject.compute(frame)
-                self.dataRecovery.addData(analyseKey, self.nbFrame, result)
-
-            ###### Dessin des données #####
-
-            for aMeasureKey, aMeasureValue in self.dataRecovery.data.items():
-                if aMeasureValue["height"][-1] != None:  # Pas de dessin des mesures vides
-                    
-                    # ligne de mesure couleur verte si correct, rouge si occulté par l'embrun
-                    color = (0, 255, 0)
-                    if aMeasureValue["quality"][-1] < self.analyses[aMeasureKey].qualityLimit:
-                        color = (0, 0, 255)
-
-
-                    cv2.drawContours(frame, [aMeasureValue["contour"][-1]], 0, (255, 0, 255), 2)
-                    cv2.line(frame, aMeasureValue["firstPosMeasure"][-1], aMeasureValue["secondPosMeasure"][-1], color, 2)
-
-            cv2.putText(frame, str(self.nbFrame), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(frame, "Erreur : ", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-
-            cv2.putText(frame, str(self.dataRecovery.data["safran"]["quality"][-1]), (145, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
-
-            ###### Fin de l'analyse de l'image ######
-
-            # Enregistrement
-            if self.record:
-                self.videoObject.write(frame)
-
-            # Afficher l'image avec les dessins
-            cv2.imshow('frame', frame)
-
-            # waitKey(x) -> Attendre x milliseconde, et regarde si l'utilisateur appuie sur 'q' pour quitter
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-
-            self.nbFrame += 1
-
-        ###### Fin de l'analyse de la vidéo #####
-
-        self.cap.release()
-
-        # Enregistrement
-        if self.record:
-            self.videoObject.release()
-
-        cv2.destroyAllWindows()
+        # Récupération des données
+        for analyseVideo in self.analyseVideoList:
+            self.listData[analyseVideo.name] = analyseVideo.dataRecovery
 
         ###### Traitement des données #####
 
-        self.dataRecovery.convertToDataframe()
+        for key, dataRecovery in self.listData.items():
+            dataRecovery.convertToDataframe()
+            copyDataRecovery = dataRecovery.data.copy()
+
+            for aMeasureKey in dataRecovery.data:
+                # Suppression des lignes ou la hauteur est nulle
+                dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].dropna()
+                
+                # Suppression des données de qualité inférieure à la limite
+                for analyseVideo in self.analyseVideoList:
+                    if analyseVideo.name == key:
+                        dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].loc[dataRecovery.data[aMeasureKey]["quality"] > analyseVideo.analyses[aMeasureKey].qualityLimit]
+
+                # Moyenne glissante
+                dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
+
+            ###### Affichage des résultats ######
 
         fig, axs = plt.subplots(2)
-        fig.suptitle('Hauteur en pixels en fonction du temps avc courbe de qualité')
-
-        for aMeasureKey in self.dataRecovery.data:
-            axs[1].plot(self.dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), self.dataRecovery.data[aMeasureKey]["quality"], label=aMeasureKey)
-
-        for aMeasureKey in self.dataRecovery.data:
-            # On garde uniquement les données de bonne qualité
-            self.dataRecovery.data[aMeasureKey] = self.dataRecovery.data[aMeasureKey].dropna()
-            self.dataRecovery.data[aMeasureKey] = self.dataRecovery.data[aMeasureKey].loc[self.dataRecovery.data[aMeasureKey]["quality"] > self.analyses[aMeasureKey].qualityLimit]
-
-            # Moyenne glissante
-            self.dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(self.dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=1)
-
-        ###### Affichage des résultats ######
+        fig.suptitle('hauteur')
 
         # Courbes
-        for aMeasureKey in self.dataRecovery.data:
-            axs[0].plot(self.dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), self.dataRecovery.data[aMeasureKey]["height"], label=aMeasureKey)
+        for aMeasureKey in dataRecovery.data:
+            axs[0].plot(dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(), dataRecovery.data[aMeasureKey]["height"], label=aMeasureKey)
 
         plt.figure()
 
         rate = 1/30
 
         # Calcul FFT
-        X = fft(self.dataRecovery.data["safran"]["height"])  # Transformée de fourier
-        freq = fftfreq(self.dataRecovery.data["safran"]["height"].size, d=rate)  # Fréquences de la transformée de Fourier
+        X = fft(dataRecovery.data["mousse"]["height"])  # Transformée de fourier
+        freq = fftfreq(dataRecovery.data["mousse"]["height"].size, d=rate)  # Fréquences de la transformée de Fourier
 
         # Calcul du nombre d'échantillon
-        N = self.dataRecovery.data["safran"]["height"].size
+        N = dataRecovery.data["mousse"]["height"].size
 
         # On prend la valeur absolue de l'amplitude uniquement pour les fréquences positives et normalisation
         X_abs = np.abs(X[:N//2])*2.0/N
@@ -161,13 +114,12 @@ class Main():
         plt.title("Transformée de Fourier")
         plt.figure()
 
-        f, t, Sxx = signal.spectrogram(self.dataRecovery.data["safran"]["height"], 30)
+        f, t, Sxx = signal.spectrogram(dataRecovery.data["mousse"]["height"], 30)
         plt.pcolormesh(t, f, Sxx, shading='gouraud')
         plt.ylabel('Fréquence (Hz)')
         plt.xlabel('Temps (s)')
         plt.title('Spectrogramme')
         plt.show()
-
 
 if __name__ == "__main__":
     Main().execute()
