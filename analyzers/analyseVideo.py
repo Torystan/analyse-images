@@ -2,8 +2,9 @@ import os
 import cv2  # OpenCV library
 import time
 import threading
+import statistics
 
-from analyzers.dataRecovery import DataRecovery
+from analyzers.data import Data
 
 
 class AnalyseVideo(threading.Thread):
@@ -16,7 +17,7 @@ class AnalyseVideo(threading.Thread):
         name (str): Nom de l'analyse
 
     return:
-        dataRecovery (DataRecovery): Objet permettant de récupérer les données.
+        data (Data): Objet permettant de récupérer les données.
     """
 
     def __init__(self, video, listeAnalyse, name):
@@ -33,7 +34,7 @@ class AnalyseVideo(threading.Thread):
 
         self.analyses = listeAnalyse
 
-        self.dataRecovery = DataRecovery()
+        self.data = Data()
 
         # Enregistrement
         if self.record:
@@ -49,28 +50,40 @@ class AnalyseVideo(threading.Thread):
         affiche l'image avec les tracés et renvois les données à la fin de la vidéo.
         """
 
+        t1 = []
+        t2 = []
+
         while True:
 
             ###### Lecture de la vidéo ######
-
+            t1.append(time.time_ns())
             # Récupère une image de la vidéo
             ret, frame = self.cap.read()
+            t2.append(time.time_ns())
+            
             if frame is None:
                 print("-----  Fin de la vidéo  -----")
+
+                list = []
+                for i in range(len(t1)):
+                    list.append(t2[i] - (t1[i]))
+                print(self.name, str(statistics.median(list)/1000000))
+                
                 break
 
             ###### Récupération des données ######
 
+            date = time.time_ns()
+
             for analyseKey, analyseObject in self.analyses.items():
                 result = analyseObject.compute(frame)
-                date = time.time_ns()
-                self.dataRecovery.addData(analyseKey, self.nbFrame, date, result)
+                self.data.addData(analyseKey, self.nbFrame, date, result)
 
             ###### Dessin des données #####
 
             i = 0
 
-            for aMeasureKey, aMeasureValue in self.dataRecovery.data.items():
+            for aMeasureKey, aMeasureValue in self.data.data.items():
                 if aMeasureValue["height"][-1] != None:  # Pas de dessin des mesures vides
                     
                     # ligne de mesure couleur verte si correct, rouge si occulté par l'embrun

@@ -19,7 +19,7 @@ class Main():
         record (boolean): Indique si on veut enregistrer la vidéo.
         videoObject (VideoObject): Objet qui contient l'enregistrement dans le cas ou record est True.
         analyse (dict of str: AnalyseContour): Dictionnaires des objets d'analyse des éléments de l'image
-        dataRecovery (DataRecovery): Objet permettant de récupérer les données.
+        data (Data): Objet permettant de récupérer les données.
     """
 
     def __init__(self):
@@ -27,7 +27,12 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord3.mp4")
+        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
+        self.cap2 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
+        self.cap3 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
+        self.cap4 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
+        #self.cap = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp")
+        #self.cap2 = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.55:554/axis-media/media.amp")
 
         # Liste des zones d'analyses
         self.analysesTribord = {}
@@ -43,6 +48,9 @@ class Main():
         # liste des threads
         self.analyseVideoList = []
         self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesBabord, "videoBabord"))
+        self.analyseVideoList.append(AnalyseVideo(self.cap2, self.analysesBabord, "videoBabord2"))
+        self.analyseVideoList.append(AnalyseVideo(self.cap3, self.analysesBabord, "videoBabord3"))
+        self.analyseVideoList.append(AnalyseVideo(self.cap4, self.analysesBabord, "videoBabord4"))
 
         self.listData = {}
 
@@ -61,54 +69,54 @@ class Main():
 
         # Récupération des données
         for analyseVideo in self.analyseVideoList:
-            self.listData[analyseVideo.name] = analyseVideo.dataRecovery
+            self.listData[analyseVideo.name] = analyseVideo.data
 
         ###### Traitement des données #####
 
         fig = make_subplots(rows=2, cols=1)
 
-        for key, dataRecovery in self.listData.items():
-            dataRecovery.convertToDataframe()
-            copyDataRecovery = dataRecovery.data.copy()
+        for key, data in self.listData.items():
+            data.convertToDataframe()
+            copyData = data.data.copy()
 
-            for aMeasureKey in dataRecovery.data:
+            for aMeasureKey in data.data:
                 # Suppression des lignes ou la hauteur est nulle
-                dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].dropna()
+                data.data[aMeasureKey] = data.data[aMeasureKey].dropna()
                 
                 # Suppression des données de qualité inférieure à la limite
                 for analyseVideo in self.analyseVideoList:
                     if analyseVideo.name == key:
-                        dataRecovery.data[aMeasureKey] = dataRecovery.data[aMeasureKey].loc[dataRecovery.data[aMeasureKey]["quality"] > analyseVideo.analyses[aMeasureKey].qualityLimit]
+                        data.data[aMeasureKey] = data.data[aMeasureKey].loc[data.data[aMeasureKey]["quality"] > analyseVideo.analyses[aMeasureKey].qualityLimit]
 
                 # Moyenne glissante
-                dataRecovery.data[aMeasureKey]["height"] = uniform_filter1d(dataRecovery.data[aMeasureKey]["height"].values.tolist(), size=15)
+                data.data[aMeasureKey]["height"] = uniform_filter1d(data.data[aMeasureKey]["height"].values.tolist(), size=15)
 
             ###### Affichage des résultats ######
 
-            for aMeasureKey in dataRecovery.data:
+            for aMeasureKey in data.data:
 
                 # Courbes de qualité
                 fig.append_trace(go.Scatter(
-                x=copyDataRecovery[aMeasureKey]["numFrame"].values.tolist(),
-                y=copyDataRecovery[aMeasureKey]["quality"],
+                x=copyData[aMeasureKey]["numFrame"].values.tolist(),
+                y=copyData[aMeasureKey]["quality"],
                 name="qualité_"+aMeasureKey + "_" + key,
                 ), row=2, col=1)
             
                 # Courbes des hauteurs
                 fig.append_trace(go.Scatter(
-                    x=dataRecovery.data[aMeasureKey]["numFrame"].values.tolist(),
-                    y=dataRecovery.data[aMeasureKey]["height"],
+                    x=data.data[aMeasureKey]["numFrame"].values.tolist(),
+                    y=data.data[aMeasureKey]["height"],
                     name=aMeasureKey + "_" + key,
                 ), row=1, col=1)
 
-                copyDataRecovery[aMeasureKey].to_excel(os.path.dirname(__file__) + "/files/outputMesures" + key + aMeasureKey +".xlsx", index = False)
+                copyData[aMeasureKey].to_excel(os.path.dirname(__file__) + "/files/outputMesures" + key + aMeasureKey +".xlsx", index = False)
 
-                list = []
-                oldI = 0
-                for i in dataRecovery.data[aMeasureKey]["date"].values.tolist():
-                    list.append(i - oldI)
-                    oldI = i
-                print(aMeasureKey, str(statistics.median(list)/1000000))
+            list = []
+            oldI = 0
+            for i in data.data["mousse"]["date"].values.tolist():
+                list.append(i - oldI)
+                oldI = i
+            print(aMeasureKey, str(statistics.median(list)/1000000))
 
         fig.update_layout(title_text="Courbes des hauteurs et qualité de mesure")
         fig.show()

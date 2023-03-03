@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-class DataRecovery():
+class Data():
     """
     Class qui contient toutes données.
       
@@ -11,7 +11,7 @@ class DataRecovery():
 
     def __init__(self):
         """
-        Constructeur de la class DataRecovery.
+        Constructeur de la class Data.
         """
 
         self.data = {}
