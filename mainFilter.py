@@ -35,14 +35,7 @@ class Main():
         self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
 
         # Liste des zones d'analyses
-        self.analysesTribord = {}
-        self.analysesTribord["derive"] = AnalyseMousse(934, 413, 956, 474, 14)
-        self.analysesTribord["safran"] = AnalyseSafran(596, 367, 663, 493, 626, 380, 641, 448, 10)
-        self.analysesTribord["mousse"] = AnalyseMousse(694, 388, 714, 496, 21)
-
         self.analysesBabord = {}
-        self.analysesBabord["derive"] = AnalyseMousse(946, 358, 987, 452, 9)
-        self.analysesBabord["safran"] = AnalyseSafran(1325, 336, 1408, 470, 1402, 342, 1368, 408, 1)
         self.analysesBabord["mousse"] = AnalyseMousse(1262, 346, 1298, 483, 1)
 
         # liste des threads
@@ -88,7 +81,7 @@ class Main():
 
         # Récupération des données
         for analyseVideo in self.analyseVideoList:
-            self.listData[analyseVideo.name] = analyseVideo.dataRecovery
+            self.listData[analyseVideo.name] = analyseVideo.data
 
         ###### Traitement des données #####
 
@@ -117,7 +110,7 @@ class Main():
         # Setting standard filter requirements.
         order = 3
         fs = 30.0
-        cutoff = 0.4
+        cutoff = 0.5
 
         # Creating the data for filteration
         t = dataRecovery.data["mousse"]["numFrame"].values.tolist()

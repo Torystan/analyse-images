@@ -1,6 +1,7 @@
 import cv2  # OpenCV library
 import numpy as np
 import math
+
 from analyzers.analyseContour import AnalyseContour
 from analyzers.contour import Contour
 
@@ -31,7 +32,7 @@ class AnalyseMousse(AnalyseContour):
         # La variable de hiérarchie contient des informations sur la relation entre chaque contour. (si un contour est dans un contour)
         contours_list_mousse, hierarchy = cv2.findContours(binary_img_mousse, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        #décalage de la zone d'analyse pour détecter l'embrun en amont
+        # Décalage de la zone d'analyse pour détecter l'embrun en amont
         cropFrameEmbrun = frame[self.y1:self.y2, int(self.x1 + (self.x2 - self.x1)/2):int(self.x2 + (self.x2 - self.x1)/2)]
         qualityIndex = self.embrunDetection.detection(cropFrameEmbrun)
 
@@ -40,10 +41,11 @@ class AnalyseMousse(AnalyseContour):
             # Trouver le contour le plus proche du coin en haut à droite (pour éviter les contours parasites)
             contourMousse = None
             for c in contours_list_mousse:
-                # Si un contour est à moins de 15 pixel du point (coin en haut à droite de la zone d'analyse)
-                
+
+                # Si un contour est à moins de 100 pixels du point (coin en haut à droite de la zone d'analyse)
                 if abs(cv2.pointPolygonTest(c, (self.x2 - self.x1, 1), True)) < 15 and cv2.contourArea(c) > 100:
                     contourMousse = c
+                    break
 
             if contourMousse is None:
                 return Contour(None, None, None, None, qualityIndex)
@@ -62,9 +64,6 @@ class AnalyseMousse(AnalyseContour):
                 y1 = (contourMousse[rightPoints[0][0]][0])[1] + self.y1
                 x2 = (contourMousse[rightPoints[0][1]][0])[0] + self.x1
                 y2 = self.y1
-
-                # Récupère la coordonnée y du point le plus haut, mais pas besoin si le coin en haut à droite de la zone est bien placé sur la coque
-                #y2 = (contourMousse[rightPoints[0][1]][0])[1] + self.y1
 
                 # Décalage des coordonnées du contour pour correspondre sur l'image original (frame)
                 contourMousse = contourMousse + (self.x1, self.y1)

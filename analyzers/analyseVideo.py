@@ -2,9 +2,10 @@ import os
 import cv2  # OpenCV library
 import time
 import threading
-import statistics
+import time
 
 from analyzers.data import Data
+from analyzers.videoGet import VideoGet
 
 
 class AnalyseVideo(threading.Thread):
@@ -27,7 +28,7 @@ class AnalyseVideo(threading.Thread):
         threading.Thread.__init__(self)
 
         self.name = name
-        self.cap = video
+        self.videoGetter = VideoGet(video).start()
         self.record = False
         self.videoObject = None
         self.nbFrame = 1
@@ -38,11 +39,11 @@ class AnalyseVideo(threading.Thread):
 
         # Enregistrement
         if self.record:
-            frame_width = int(self.cap.get(3))
-            frame_height = int(self.cap.get(4))
+            frame_width = int(video.get(3))
+            frame_height = int(video.get(4))
 
             size = (frame_width, frame_height)
-            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/../video/record/record" + self.name + ".mp4", cv2.VideoWriter_fourcc(*'mp4v'), self.cap.get(cv2.CAP_PROP_FPS), size)
+            self.videoObject = cv2.VideoWriter(os.path.dirname(__file__) + "/../video/record/record" + self.name + ".mp4", cv2.VideoWriter_fourcc(*'mp4v'), video.get(cv2.CAP_PROP_FPS), size)
 
     def run(self):
         """
@@ -50,39 +51,22 @@ class AnalyseVideo(threading.Thread):
         affiche l'image avec les tracés et renvois les données à la fin de la vidéo.
         """
 
-        t1 = []
-        t2 = []
-
         while True:
 
             ###### Lecture de la vidéo ######
-            t1.append(time.time_ns())
             # Récupère une image de la vidéo
-            ret, frame = self.cap.read()
-            t2.append(time.time_ns())
-            
-            if frame is None:
-                print("-----  Fin de la vidéo  -----")
-
-                list = []
-                for i in range(len(t1)):
-                    list.append(t2[i] - (t1[i]))
-                print(self.name, str(statistics.median(list)/1000000))
-                
-                break
+            frame = self.videoGetter.read()
 
             ###### Récupération des données ######
 
             date = time.time_ns()
-
             for analyseKey, analyseObject in self.analyses.items():
                 result = analyseObject.compute(frame)
                 self.data.addData(analyseKey, self.nbFrame, date, result)
 
             ###### Dessin des données #####
-
+            
             i = 0
-
             for aMeasureKey, aMeasureValue in self.data.data.items():
                 if aMeasureValue["height"][-1] != None:  # Pas de dessin des mesures vides
                     
@@ -94,11 +78,11 @@ class AnalyseVideo(threading.Thread):
                     cv2.drawContours(frame, [aMeasureValue["contour"][-1]], 0, (255, 0, 255), 1)
                     cv2.line(frame, aMeasureValue["firstPosMeasure"][-1], aMeasureValue["secondPosMeasure"][-1], color, 2)
 
-                cv2.putText(frame, "Erreur " + aMeasureKey + ": " + str(aMeasureValue["quality"][-1]), (10, 110 + i*35), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+                cv2.putText(frame, "indice qualite " + aMeasureKey + ": " + str(aMeasureValue["quality"][-1]), (10, 110 + i*35), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
                 i += 1
 
             cv2.putText(frame, str(self.nbFrame), (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 0), 2, cv2.LINE_AA)
-            cv2.putText(frame, "Erreur : ", (10, 110), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame, "buffer : " + str(self.videoGetter.queueSize()), (10, 220), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv2.LINE_AA)
             
             ###### Fin de l'analyse de l'image ######
 
@@ -110,14 +94,14 @@ class AnalyseVideo(threading.Thread):
             cv2.imshow(self.name, frame)
 
             # waitKey(x) -> Attendre x milliseconde, et regarde si l'utilisateur appuie sur échap pour quitter
-            if cv2.waitKey(1) & 0xFF == 27:
+            if (cv2.waitKey(1) & 0xFF == 27) or (self.videoGetter.stopped and not self.videoGetter.more()):
+
+                self.videoGetter.stop()
                 break
 
             self.nbFrame += 1
 
         ###### Fin de l'analyse de la vidéo #####
-
-        self.cap.release()
 
         # Enregistrement
         if self.record:

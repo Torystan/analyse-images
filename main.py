@@ -3,7 +3,6 @@ import cv2  # OpenCV library
 from scipy.ndimage import uniform_filter1d
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-import statistics
 
 from analyzers.analyseVideo import AnalyseVideo
 from analyzers.analyseSafran import AnalyseSafran
@@ -16,10 +15,9 @@ class Main():
 
     Attributs:
         cap (VideoCapture): Objet permettant de charger une vidéo, puis de la lire avec la méthode read().
-        record (boolean): Indique si on veut enregistrer la vidéo.
-        videoObject (VideoObject): Objet qui contient l'enregistrement dans le cas ou record est True.
         analyse (dict of str: AnalyseContour): Dictionnaires des objets d'analyse des éléments de l'image
-        data (Data): Objet permettant de récupérer les données.
+        analyseVideoList (list of AnalyseVideo): liste des objets AnalyseVideo.
+        listData (list of Data): liste des objets Data.
     """
 
     def __init__(self):
@@ -27,30 +25,17 @@ class Main():
         Constructeur de la class Main()
         """
 
-        self.cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
-        self.cap2 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
-        self.cap3 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
-        self.cap4 = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/vagues/vagueBabord2.mp4")
-        #self.cap = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.56:554/axis-media/media.amp")
-        #self.cap2 = cv2.VideoCapture("rtsp://root:M101_svr@192.168.1.55:554/axis-media/media.amp")
+        cap = cv2.VideoCapture(os.path.dirname(__file__) + "/video/input/ccc.mkv")
 
         # Liste des zones d'analyses
         self.analysesTribord = {}
-        self.analysesTribord["derive"] = AnalyseMousse(934, 413, 956, 474, 14)
-        self.analysesTribord["safran"] = AnalyseSafran(596, 367, 663, 493, 626, 380, 641, 448, 10)
-        self.analysesTribord["mousse"] = AnalyseMousse(694, 388, 714, 496, 21)
-
-        self.analysesBabord = {}
-        self.analysesBabord["derive"] = AnalyseMousse(946, 358, 987, 452, 9)
-        self.analysesBabord["safran"] = AnalyseSafran(1325, 336, 1408, 470, 1402, 342, 1368, 408, 1)
-        self.analysesBabord["mousse"] = AnalyseMousse(1262, 346, 1298, 483, 1)
+        self.analysesTribord["derive"] = AnalyseMousse(1462, 271, 1514, 410, 27)
+        self.analysesTribord["safran"] = AnalyseSafran(355, 433, 451, 572, 411, 435, 423, 506, 21)
+        self.analysesTribord["mousse"] = AnalyseMousse(570, 380, 715, 637, 31)
 
         # liste des threads
         self.analyseVideoList = []
-        self.analyseVideoList.append(AnalyseVideo(self.cap, self.analysesBabord, "videoBabord"))
-        self.analyseVideoList.append(AnalyseVideo(self.cap2, self.analysesBabord, "videoBabord2"))
-        self.analyseVideoList.append(AnalyseVideo(self.cap3, self.analysesBabord, "videoBabord3"))
-        self.analyseVideoList.append(AnalyseVideo(self.cap4, self.analysesBabord, "videoBabord4"))
+        self.analyseVideoList.append(AnalyseVideo(cap, self.analysesTribord, "videoTribord"))
 
         self.listData = {}
 
@@ -89,7 +74,7 @@ class Main():
                         data.data[aMeasureKey] = data.data[aMeasureKey].loc[data.data[aMeasureKey]["quality"] > analyseVideo.analyses[aMeasureKey].qualityLimit]
 
                 # Moyenne glissante
-                data.data[aMeasureKey]["height"] = uniform_filter1d(data.data[aMeasureKey]["height"].values.tolist(), size=15)
+                data.data[aMeasureKey]["height"] = uniform_filter1d(data.data[aMeasureKey]["height"].values.tolist(), size=50)
 
             ###### Affichage des résultats ######
 
@@ -110,13 +95,6 @@ class Main():
                 ), row=1, col=1)
 
                 copyData[aMeasureKey].to_excel(os.path.dirname(__file__) + "/files/outputMesures" + key + aMeasureKey +".xlsx", index = False)
-
-            list = []
-            oldI = 0
-            for i in data.data["mousse"]["date"].values.tolist():
-                list.append(i - oldI)
-                oldI = i
-            print(aMeasureKey, str(statistics.median(list)/1000000))
 
         fig.update_layout(title_text="Courbes des hauteurs et qualité de mesure")
         fig.show()

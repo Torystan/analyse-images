@@ -23,6 +23,7 @@ class Data():
         Paramètres:
             key (str): Clé du dictionnaire des données qui est le nom de l'object mesuré.
             numFrame (int): Numéro de l'image qui correspond à la mesure des données.
+            date (int): Tmestamp en nanoseconde.
             contour (Contour): Object Contour qui contient les données de la mesure.
         """
 
@@ -40,7 +41,7 @@ class Data():
 
     def convertToDataframe(self):
         """
-        Fonction qui convertit les dictionnaires de tableaux en DataFrame, écrase les anciennes valeurs.
+        Fonction qui converti l'attribut self.data de dictionnaires de tableaux en DataFrame.
         """
 
         for aMeasureKey in self.data:

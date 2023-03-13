@@ -1,9 +1,8 @@
-import cv2  # OpenCV library
+import cv2
+import numpy as np
+
 from analyzers.analyseContour import AnalyseContour
 from analyzers.contour import Contour
-import cv2
-import math
-import numpy as np
 
 
 class AnalyseSafran(AnalyseContour):
@@ -11,8 +10,10 @@ class AnalyseSafran(AnalyseContour):
     Class qui mesure la taille du safran qui sort de l'eau.
 
     Attributs:
-        xRefPoint (int): coordonnée x du point de référence pour démarer la mesure, correspond au point le plus haut du safran.
-        yRefPoint (int): coordonnée y du point de référence pour démarer la mesure, correspond au point le plus haut du safran.
+        x1RefPoint (int): coordonnée x du premier point de référence correspond au point le plus haut du safran.
+        y1RefPoint (int): coordonnée y du premier point de référence correspond au point le plus haut du safran.
+        x2RefPoint (int): coordonnée x du deuxième point de référence pour calculer la droite du safran.
+        y2RefPoint (int): coordonnée y du deuxième point de référence pour calculer la droite du safran.
     """
 
     def __init__(self, x1, y1, x2, y2, x1RefPoint, y1RefPoint, x2RefPoint, y2RefPoint, qualityLimit):
@@ -38,11 +39,10 @@ class AnalyseSafran(AnalyseContour):
         gray_img_safran = cv2.cvtColor(cropFrame, cv2.COLOR_BGR2GRAY)
         gray_img_safran = cv2.GaussianBlur(gray_img_safran, (3, 7), 0)
         
-
-        # dessins de toutes les bordures
+        # Dessins de toutes les bordures
         median_pix = np.median(gray_img_safran)
         lower = int(max(0, 0.5*median_pix))
-        upper = int(min(255, 1.2*median_pix))
+        upper = int(min(255, 1.3*median_pix))
         edged = cv2.Canny(gray_img_safran, lower, upper)
 
         # Détection des contours
